@@ -5,6 +5,15 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("electron", {
   platform: process.platform,
 
+  // File system operations
+  fileSystem: {
+    /**
+     * Show file picker dialog for importing videos
+     * @returns {Promise<{success: boolean, filePaths?: string[], canceled?: boolean, error?: string}>}
+     */
+    showOpenDialog: () => ipcRenderer.invoke("show-open-dialog"),
+  },
+
   // FFmpeg operations
   ffmpeg: {
     /**

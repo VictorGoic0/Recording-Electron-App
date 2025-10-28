@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const {
@@ -185,6 +185,47 @@ ipcMain.handle("get-video-resolution", async (event, filePath) => {
     };
   } catch (error) {
     console.error("[IPC] Failed to get resolution:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+// ============================================================================
+// File System Operations
+// ============================================================================
+
+/**
+ * Show file picker dialog for importing videos
+ */
+ipcMain.handle("show-open-dialog", async (event) => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Import Video Files",
+      buttonLabel: "Import",
+      filters: [
+        { name: "Videos", extensions: ["mp4", "mov", "webm"] },
+        { name: "All Files", extensions: ["*"] },
+      ],
+      properties: ["openFile", "multiSelections"],
+    });
+
+    console.log("[IPC] File dialog result:", result);
+
+    if (result.canceled) {
+      return {
+        success: false,
+        canceled: true,
+      };
+    }
+
+    return {
+      success: true,
+      filePaths: result.filePaths,
+    };
+  } catch (error) {
+    console.error("[IPC] Failed to show open dialog:", error);
     return {
       success: false,
       error: error.message,

@@ -6,9 +6,36 @@ function App() {
   const [clips, setClips] = useState([]);
   const [selectedClipId, setSelectedClipId] = useState(null);
 
-  const handleImport = (files) => {
+  const handleImport = async (files) => {
     console.log("Import requested:", files);
-    // TODO: Implement import logic in next subtask
+    
+    // If no files provided (button click), show file picker
+    if (!files) {
+      const result = await window.electron.fileSystem.showOpenDialog();
+      
+      if (result.success && result.filePaths) {
+        console.log("Files selected from dialog:", result.filePaths);
+        await processImportedFiles(result.filePaths);
+      } else if (result.canceled) {
+        console.log("File selection canceled");
+      } else if (result.error) {
+        console.error("Error opening file dialog:", result.error);
+      }
+    } else {
+      // Files from drag-and-drop
+      const filePaths = files.map((file) => file.path);
+      console.log("Files from drag-and-drop:", filePaths);
+      await processImportedFiles(filePaths);
+    }
+  };
+
+  const processImportedFiles = async (filePaths) => {
+    console.log("Processing files:", filePaths);
+    // TODO: Process files with FFmpeg in next subtask
+    // For now, just log them
+    for (const filePath of filePaths) {
+      console.log("Would process:", filePath);
+    }
   };
 
   const handleClipSelect = (clip) => {

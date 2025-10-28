@@ -158,7 +158,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Add "Import" button at top
   - Style with hover effects
 
-- [ ] 2. Implement file picker import
+- [x] 2. Implement file picker import
 
   - Add click handler to "Import" button
   - Use Electron's `dialog.showOpenDialog()` in main process
