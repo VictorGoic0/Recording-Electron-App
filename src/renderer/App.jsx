@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import MediaLibrary from "./components/MediaLibrary";
+import { useMedia } from "./context/MediaContext";
 import { v4 as uuidv4 } from "uuid";
 
 function App() {
-  const [clips, setClips] = useState([]);
-  const [selectedClipId, setSelectedClipId] = useState(null);
+  const { clips, selectedClipId, addMultipleMedia, selectClip } = useMedia();
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Prevent default drag-and-drop behavior on the entire app
@@ -105,9 +105,9 @@ function App() {
       }
     }
 
-    // Add all successfully processed clips to state
+    // Add all successfully processed clips to state using context
     if (newClips.length > 0) {
-      setClips((prevClips) => [...prevClips, ...newClips]);
+      addMultipleMedia(newClips);
       console.log(`✓ Added ${newClips.length} clip(s) to library`);
     }
 
@@ -121,7 +121,7 @@ function App() {
   };
 
   const handleClipSelect = (clip) => {
-    setSelectedClipId(clip.id);
+    selectClip(clip.id);
     console.log("Clip selected:", clip);
   };
 
