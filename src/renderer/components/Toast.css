@@ -15,12 +15,13 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: var(--bg-secondary);
+  background: #2d2d2d;
   border-radius: var(--border-radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   border-left: 4px solid;
   animation: slideIn 0.3s ease;
   min-width: 300px;
+  opacity: 1;
 }
 
 .toast-success {
