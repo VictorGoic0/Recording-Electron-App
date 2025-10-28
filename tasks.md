@@ -84,7 +84,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 
 ### Subtasks
 
-- [ ] 1. Download FFmpeg static binaries
+- [x] 1. Download FFmpeg static binaries
 
   - Get macOS build from https://ffmpeg.org/download.html or https://evermeet.cx/ffmpeg/
   - Get Windows build from https://www.gyan.dev/ffmpeg/builds/
