@@ -165,7 +165,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Filter for supported formats: `.mp4`, `.mov`, `.webm`
   - Allow multiple file selection
 
-- [ ] 3. Implement drag-and-drop import
+- [x] 3. Implement drag-and-drop import
 
   - Add drag-and-drop event listeners to MediaLibrary component
   - Handle `dragover`, `dragleave`, `drop` events

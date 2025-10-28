@@ -1,10 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import MediaLibrary from "./components/MediaLibrary";
 
 function App() {
   const [clips, setClips] = useState([]);
   const [selectedClipId, setSelectedClipId] = useState(null);
+
+  // Prevent default drag-and-drop behavior on the entire app
+  // This prevents files from opening in the Electron window
+  useEffect(() => {
+    const preventDefaults = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    // Prevent drag and drop on document level
+    document.addEventListener("dragover", preventDefaults);
+    document.addEventListener("drop", preventDefaults);
+
+    return () => {
+      document.removeEventListener("dragover", preventDefaults);
+      document.removeEventListener("drop", preventDefaults);
+    };
+  }, []);
 
   const handleImport = async (files) => {
     console.log("Import requested:", files);

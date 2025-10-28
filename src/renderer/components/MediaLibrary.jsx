@@ -24,13 +24,41 @@ function MediaLibrary({ clips = [], onImport, onClipSelect, selectedClipId }) {
   const handleDragOver = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    setIsDragging(true);
+    
+    // Only show drop indicator if files are being dragged
+    if (event.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+      event.dataTransfer.dropEffect = "copy";
+    }
+  };
+
+  const handleDragEnter = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (event.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
   };
 
   const handleDragLeave = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    setIsDragging(false);
+    
+    // Only hide drop indicator when leaving the component entirely
+    // Check if the related target is outside the library content
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
+    
+    if (
+      x <= rect.left ||
+      x >= rect.right ||
+      y <= rect.top ||
+      y >= rect.bottom
+    ) {
+      setIsDragging(false);
+    }
   };
 
   const handleDrop = (event) => {
@@ -40,8 +68,17 @@ function MediaLibrary({ clips = [], onImport, onClipSelect, selectedClipId }) {
 
     // Handle dropped files
     const files = Array.from(event.dataTransfer.files);
-    if (files.length > 0 && onImport) {
-      onImport(files);
+    
+    // Filter for video files only
+    const videoFiles = files.filter((file) => {
+      const ext = file.name.toLowerCase().split(".").pop();
+      return ["mp4", "mov", "webm"].includes(ext);
+    });
+
+    if (videoFiles.length > 0 && onImport) {
+      onImport(videoFiles);
+    } else if (files.length > 0 && videoFiles.length === 0) {
+      console.warn("No supported video files found. Supported formats: MP4, MOV, WebM");
     }
   };
 
@@ -56,6 +93,7 @@ function MediaLibrary({ clips = [], onImport, onClipSelect, selectedClipId }) {
 
       <div
         className={`library-content ${isDragging ? "dragging" : ""}`}
+        onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
