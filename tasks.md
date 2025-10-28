@@ -47,14 +47,14 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
   - Configure app icon and metadata
   - Test packaging in dev mode
 
-- [ ] 6. Set up basic UI layout structure
+- [x] 6. Set up basic UI layout structure
 
   - Create main container with 3 sections: Media Library, Preview, Timeline
   - Use CSS Grid or Flexbox for layout
   - Add placeholder divs for each section
   - Ensure responsive resizing
 
-- [ ] 7. Add basic styling
+- [x] 7. Add basic styling
 
   - Choose color scheme (dark mode recommended for video editing)
   - Set up CSS variables for theme colors
