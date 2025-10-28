@@ -14,33 +14,33 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 
 ### Subtasks
 
-- [ ] 1. Initialize new Electron + React project
+- [x] 1. Initialize new Electron + React project
 
   - Run `npm init` or use `electron-react-boilerplate`
   - Configure TypeScript (optional) or stick with JavaScript
   - Set up folder structure: `/src/main`, `/src/renderer`, `/src/components`
 
-- [ ] 2. Configure Electron main process
+- [x] 2. Configure Electron main process
 
   - Create `main.js` with basic window creation
   - Set up window dimensions (1280x800 minimum)
   - Configure dev tools in development mode
   - Add window state management (remember size/position)
 
-- [ ] 3. Set up React in renderer process
+- [x] 3. Set up React in renderer process
 
   - Create basic App component
   - Set up React Router (if needed for multiple views)
   - Configure hot module reloading for development
 
-- [ ] 4. Install core dependencies
+- [x] 4. Install core dependencies
 
   - `electron`, `react`, `react-dom`
   - `electron-builder` for packaging
   - `concurrently` for running main + renderer processes
   - Add to `package.json` scripts: `dev`, `build`, `package`
 
-- [ ] 5. Configure build and packaging
+- [x] 5. Configure build and packaging
 
   - Set up `electron-builder` configuration
   - Define build targets (Mac `.dmg`, Windows `.exe`)
