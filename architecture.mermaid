@@ -1,0 +1,76 @@
+%% ClipForge - Feature Architecture & PR Breakdown
+%% Shows what each PR delivers and how many subtasks
+
+graph TB
+    subgraph MVP["MVP REQUIREMENTS (Tuesday 10:59 PM)"]
+        PR1["PR#1: Project Setup<br/>✓ Electron + React<br/>✓ Basic UI Layout<br/>📋 8 subtasks"]
+        PR2["PR#2: FFmpeg Integration<br/>✓ Bundle Binaries<br/>✓ Video Metadata<br/>✓ Thumbnails<br/>📋 8 subtasks"]
+        PR3["PR#3: Video Import<br/>✓ Drag & Drop<br/>✓ File Picker<br/>✓ Media Library UI<br/>📋 9 subtasks"]
+        PR4["PR#4: Video Player<br/>✓ Playback Controls<br/>✓ Scrubbing<br/>✓ Audio Sync<br/>📋 9 subtasks"]
+        PR5["PR#5: Timeline UI<br/>✓ Track System<br/>✓ Time Ruler<br/>✓ Playhead<br/>✓ Zoom Controls<br/>📋 10 subtasks"]
+        PR6["PR#6: Trim & Export<br/>✓ Trim Handles<br/>✓ FFmpeg Export<br/>✓ Progress Tracking<br/>📋 11 subtasks"]
+    end
+    
+    subgraph FINAL["FINAL SUBMISSION (Wednesday 10:59 PM)"]
+        PR7["PR#7: Screen Recording<br/>✓ Source Selection<br/>✓ Recording Controls<br/>✓ Microphone Audio<br/>✓ Countdown Timer<br/>📋 11 subtasks"]
+        PR8["PR#8: Webcam Recording<br/>✓ Camera Selection<br/>✓ Live Preview<br/>✓ Recording Controls<br/>📋 7 subtasks"]
+        PR9["PR#9: Multi-Track<br/>✓ 2-3 Tracks<br/>✓ Split Clips<br/>✓ Delete Clips<br/>✓ Overlay Export<br/>📋 10 subtasks"]
+        PR10["PR#10: Polish<br/>✓ Error Handling<br/>✓ UI Polish<br/>✓ Packaging<br/>✓ Demo Video<br/>📋 12 subtasks"]
+    end
+    
+    subgraph STRETCH["STRETCH GOALS (If Time Permits)"]
+        PR11["PR#11: Save/Load<br/>Projects"]
+        PR12["PR#12: Undo/Redo<br/>System"]
+        PR13["PR#13: Transitions<br/>Between Clips"]
+        PR14["PR#14: Text<br/>Overlays"]
+        PR15["PR#15: Real-Time<br/>PiP Recording"]
+    end
+    
+    Start([Monday Morning<br/>Oct 27]) --> PR1
+    PR1 --> PR2
+    PR2 --> PR3
+    PR3 --> PR4
+    PR4 --> PR5
+    PR5 --> PR6
+    PR6 --> MVPGate{MVP Complete?<br/>Tuesday 10:59 PM}
+    
+    MVPGate -->|✅ Yes| PR7
+    MVPGate -->|❌ No| FixMVP[Fix Issues]
+    FixMVP --> MVPGate
+    
+    PR7 --> PR8
+    PR8 --> PR9
+    PR9 --> PR10
+    PR10 --> FinalGate{Ready to Submit?<br/>Wednesday 10:59 PM}
+    
+    FinalGate -->|✅ Yes| Submit([Submit Project])
+    FinalGate -->|⏰ Time Left| PR11
+    
+    PR11 --> PR12
+    PR12 --> PR13
+    PR13 --> PR14
+    PR14 --> PR15
+    PR15 --> Submit
+    
+    style MVP fill:#E3F2FD,stroke:#1976D2,stroke-width:3px
+    style FINAL fill:#E8F5E9,stroke:#388E3C,stroke-width:3px
+    style STRETCH fill:#FFF3E0,stroke:#F57C00,stroke-width:3px
+    style PR1 fill:#2196F3,color:#fff
+    style PR2 fill:#2196F3,color:#fff
+    style PR3 fill:#2196F3,color:#fff
+    style PR4 fill:#2196F3,color:#fff
+    style PR5 fill:#2196F3,color:#fff
+    style PR6 fill:#2196F3,color:#fff
+    style PR7 fill:#4CAF50,color:#fff
+    style PR8 fill:#4CAF50,color:#fff
+    style PR9 fill:#4CAF50,color:#fff
+    style PR10 fill:#4CAF50,color:#fff
+    style PR11 fill:#FF9800,color:#fff
+    style PR12 fill:#FF9800,color:#fff
+    style PR13 fill:#FF9800,color:#fff
+    style PR14 fill:#FF9800,color:#fff
+    style PR15 fill:#FF9800,color:#fff
+    style MVPGate fill:#F44336,color:#fff,stroke:#C62828,stroke-width:3px
+    style FinalGate fill:#F44336,color:#fff,stroke:#C62828,stroke-width:3px
+    style Submit fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:3px
+    style Start fill:#9C27B0,color:#fff
