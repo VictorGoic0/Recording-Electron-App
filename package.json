@@ -30,11 +30,24 @@
   "build": {
     "appId": "com.clipcreate.app",
     "productName": "ClipCreate",
+    "files": [
+      "src/**/*",
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/ffmpeg/${os}",
+        "to": "ffmpeg",
+        "filter": ["**/*"]
+      }
+    ],
     "win": {
       "target": "nsis"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "category": "public.app-category.video"
     }
   }
 }

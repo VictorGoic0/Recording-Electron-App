@@ -90,7 +90,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Get Windows build from https://www.gyan.dev/ffmpeg/builds/
   - Store in `/resources/ffmpeg/` directory (separate folders for mac/win)
 
-- [ ] 2. Configure FFmpeg bundling
+- [x] 2. Configure FFmpeg bundling
 
   - Add FFmpeg binaries to `electron-builder` extraResources
   - Update build config to include binaries in package

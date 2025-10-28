@@ -1,6 +1,7 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
+const { verifyFFmpegInstallation } = require("./services/ffmpegService");
 
 let mainWindow;
 
@@ -30,7 +31,18 @@ function createWindow() {
   });
 }
 
-app.on("ready", createWindow);
+app.on("ready", async () => {
+  // Verify FFmpeg installation on startup
+  try {
+    const version = await verifyFFmpegInstallation();
+    console.log(`[Main] FFmpeg initialized successfully (version: ${version})`);
+  } catch (error) {
+    console.error("[Main] FFmpeg initialization failed:", error);
+    // Continue anyway - we'll handle errors when FFmpeg is actually needed
+  }
+
+  createWindow();
+});
 
 app.on("window-all-closed", function () {
   if (process.platform !== "darwin") {
