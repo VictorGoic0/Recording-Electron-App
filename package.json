@@ -20,8 +20,11 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.0",
     "concurrently": "^8.2.2",
-    "electron-builder": "latest"
+    "cross-env": "^10.1.0",
+    "electron-builder": "latest",
+    "vite": "^7.1.12"
   },
   "build": {
     "appId": "com.clipforge.app",
