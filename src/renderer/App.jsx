@@ -1,7 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import "./App.css";
+import MediaLibrary from "./components/MediaLibrary";
 
 function App() {
+  const [clips, setClips] = useState([]);
+  const [selectedClipId, setSelectedClipId] = useState(null);
+
+  const handleImport = (files) => {
+    console.log("Import requested:", files);
+    // TODO: Implement import logic in next subtask
+  };
+
+  const handleClipSelect = (clip) => {
+    setSelectedClipId(clip.id);
+    console.log("Clip selected:", clip);
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -17,21 +31,12 @@ function App() {
       <div className="main-content">
         <div className="top-section">
           {/* Media Library - Left Panel */}
-          <aside className="media-library">
-            <div className="panel-header">
-              <h2>Media Library</h2>
-              <button className="btn-primary">+ Import</button>
-            </div>
-            <div className="library-content">
-              <div className="placeholder-content">
-                <div className="placeholder-icon">📁</div>
-                <p>No media files yet</p>
-                <p className="placeholder-hint">
-                  Import videos or record your screen
-                </p>
-              </div>
-            </div>
-          </aside>
+          <MediaLibrary
+            clips={clips}
+            onImport={handleImport}
+            onClipSelect={handleClipSelect}
+            selectedClipId={selectedClipId}
+          />
 
           {/* Video Preview - Center Panel */}
           <section className="video-preview">

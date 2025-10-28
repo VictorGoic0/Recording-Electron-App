@@ -151,7 +151,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 
 ### Subtasks
 
-- [ ] 1. Create Media Library component
+- [x] 1. Create Media Library component
 
   - New file: `/src/renderer/components/MediaLibrary.jsx`
   - Design grid layout for clip thumbnails
