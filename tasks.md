@@ -96,40 +96,40 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Update build config to include binaries in package
   - Handle platform-specific paths (macOS vs Windows)
 
-- [ ] 3. Install fluent-ffmpeg
+- [x] 3. Install fluent-ffmpeg
 
   - `npm install fluent-ffmpeg`
   - `npm install @ffmpeg-installer/ffmpeg` (fallback option)
   - Choose one approach and stick with it
 
-- [ ] 4. Create FFmpeg service module
+- [x] 4. Create FFmpeg service module
 
   - New file: `/src/main/services/ffmpegService.js`
   - Detect platform and set FFmpeg binary path
   - Export configured ffmpeg instance
   - Add error handling for missing binary
 
-- [ ] 5. Test FFmpeg installation
+- [x] 5. Test FFmpeg installation
 
   - Create simple test: get video metadata
   - Test with a sample MP4 file
   - Verify FFmpeg executes without errors
   - Log FFmpeg version to confirm it's working
 
-- [ ] 6. Create basic video info extractor
+- [x] 6. Create basic video info extractor
 
   - Function to extract duration from video file
   - Function to extract resolution (width x height)
   - Function to extract file size
   - Function to extract codec information
 
-- [ ] 7. Create thumbnail generator
+- [x] 7. Create thumbnail generator
 
   - Function to extract frame at 1 second as thumbnail
   - Save thumbnail as base64 or temp file
   - Return thumbnail data for UI display
 
-- [ ] 8. Set up IPC for FFmpeg operations
+- [x] 8. Set up IPC for FFmpeg operations
   - Create IPC handlers in main process for FFmpeg calls
   - Add handlers: `get-video-info`, `generate-thumbnail`
   - Test IPC communication from renderer process

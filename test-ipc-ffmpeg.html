@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FFmpeg IPC Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        .result {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            border-left: 4px solid #00cc00;
+        }
+        .error {
+            border-left: 4px solid #cc0000;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        img {
+            max-width: 320px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FFmpeg IPC Communication Test</h1>
+        <p>This page tests the IPC communication between renderer and main process for FFmpeg operations.</p>
+        
+        <div>
+            <input type="file" id="videoFile" accept="video/*" />
+        </div>
+        
+        <div>
+            <button onclick="testGetVideoInfo()">Test: Get Video Info</button>
+            <button onclick="testGenerateThumbnail()">Test: Generate Thumbnail</button>
+            <button onclick="testGetDuration()">Test: Get Duration</button>
+            <button onclick="testGetResolution()">Test: Get Resolution</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let selectedFilePath = null;
+
+        // Handle file selection
+        document.getElementById('videoFile').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFilePath = file.path;
+                addResult('File selected: ' + selectedFilePath, 'success');
+            }
+        });
+
+        function addResult(message, type = 'success') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+        }
+
+        async function testGetVideoInfo() {
+            if (!selectedFilePath) {
+                addResult('Please select a video file first!', 'error');
+                return;
+            }
+
+            try {
+                addResult('Testing get-video-info...', 'success');
+                const result = await window.electron.ffmpeg.getVideoInfo(selectedFilePath);
+                
+                if (result.success) {
+                    addResult('✅ Get Video Info Success:\n' + JSON.stringify(result.data, null, 2), 'success');
+                } else {
+                    addResult('❌ Get Video Info Failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Exception: ' + error.message, 'error');
+            }
+        }
+
+        async function testGenerateThumbnail() {
+            if (!selectedFilePath) {
+                addResult('Please select a video file first!', 'error');
+                return;
+            }
+
+            try {
+                addResult('Testing generate-thumbnail...', 'success');
+                const result = await window.electron.ffmpeg.generateThumbnail(selectedFilePath, 1);
+                
+                if (result.success) {
+                    addResult('✅ Generate Thumbnail Success!', 'success');
+                    
+                    // Display thumbnail
+                    const img = document.createElement('img');
+                    img.src = result.data;
+                    const resultsDiv = document.getElementById('results');
+                    resultsDiv.insertBefore(img, resultsDiv.firstChild);
+                } else {
+                    addResult('❌ Generate Thumbnail Failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Exception: ' + error.message, 'error');
+            }
+        }
+
+        async function testGetDuration() {
+            if (!selectedFilePath) {
+                addResult('Please select a video file first!', 'error');
+                return;
+            }
+
+            try {
+                addResult('Testing get-video-duration...', 'success');
+                const result = await window.electron.ffmpeg.getDuration(selectedFilePath);
+                
+                if (result.success) {
+                    addResult(`✅ Duration: ${result.data} seconds (${Math.floor(result.data / 60)}:${Math.floor(result.data % 60).toString().padStart(2, '0')})`, 'success');
+                } else {
+                    addResult('❌ Get Duration Failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Exception: ' + error.message, 'error');
+            }
+        }
+
+        async function testGetResolution() {
+            if (!selectedFilePath) {
+                addResult('Please select a video file first!', 'error');
+                return;
+            }
+
+            try {
+                addResult('Testing get-video-resolution...', 'success');
+                const result = await window.electron.ffmpeg.getResolution(selectedFilePath);
+                
+                if (result.success) {
+                    addResult(`✅ Resolution: ${result.data.width}x${result.data.height}`, 'success');
+                } else {
+                    addResult('❌ Get Resolution Failed: ' + result.error, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Exception: ' + error.message, 'error');
+            }
+        }
+
+        // Show platform info
+        addResult('Platform: ' + window.electron.platform, 'success');
+        addResult('FFmpeg IPC methods available: ' + Object.keys(window.electron.ffmpeg).join(', '), 'success');
+    </script>
+</body>
+</html>
+

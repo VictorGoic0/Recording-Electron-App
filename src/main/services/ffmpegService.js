@@ -195,6 +195,83 @@ async function getCodecInfo(filePath) {
   };
 }
 
+/**
+ * Generate thumbnail from video file
+ * @param {string} filePath - Path to video file
+ * @param {number} timestamp - Timestamp in seconds to capture (default: 1)
+ * @returns {Promise<string>} Base64 encoded thumbnail image
+ */
+async function generateThumbnail(filePath, timestamp = 1) {
+  const fs = require("fs");
+  const os = require("os");
+
+  return new Promise((resolve, reject) => {
+    // Create temp file path for thumbnail
+    const tempDir = os.tmpdir();
+    const tempFilename = `thumbnail-${Date.now()}.png`;
+    const tempPath = path.join(tempDir, tempFilename);
+
+    ffmpeg(filePath)
+      .screenshots({
+        timestamps: [timestamp],
+        filename: tempFilename,
+        folder: tempDir,
+        size: "320x180",
+      })
+      .on("end", () => {
+        // Read the file and convert to base64
+        try {
+          const imageBuffer = fs.readFileSync(tempPath);
+          const base64Image = `data:image/png;base64,${imageBuffer.toString(
+            "base64"
+          )}`;
+
+          // Clean up temp file
+          fs.unlinkSync(tempPath);
+
+          resolve(base64Image);
+        } catch (error) {
+          console.error("[FFmpeg Service] Failed to read thumbnail:", error);
+          reject(error);
+        }
+      })
+      .on("error", (error) => {
+        console.error("[FFmpeg Service] Failed to generate thumbnail:", error);
+        reject(error);
+      });
+  });
+}
+
+/**
+ * Generate thumbnail and save to specific path
+ * @param {string} filePath - Path to video file
+ * @param {string} outputPath - Path to save thumbnail
+ * @param {number} timestamp - Timestamp in seconds to capture (default: 1)
+ * @returns {Promise<string>} Path to saved thumbnail
+ */
+async function generateThumbnailToFile(filePath, outputPath, timestamp = 1) {
+  return new Promise((resolve, reject) => {
+    const outputDir = path.dirname(outputPath);
+    const outputFilename = path.basename(outputPath);
+
+    ffmpeg(filePath)
+      .screenshots({
+        timestamps: [timestamp],
+        filename: outputFilename,
+        folder: outputDir,
+        size: "320x180",
+      })
+      .on("end", () => {
+        console.log("[FFmpeg Service] Thumbnail saved to:", outputPath);
+        resolve(outputPath);
+      })
+      .on("error", (error) => {
+        console.error("[FFmpeg Service] Failed to generate thumbnail:", error);
+        reject(error);
+      });
+  });
+}
+
 // Initialize FFmpeg on module load
 initializeFFmpeg();
 
@@ -209,4 +286,6 @@ module.exports = {
   getVideoResolution,
   getFileSize,
   getCodecInfo,
+  generateThumbnail,
+  generateThumbnailToFile,
 };
