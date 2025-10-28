@@ -1,4 +1,4 @@
-# Technical Context: ClipForge
+# Technical Context: ClipCreate
 
 ## Technology Stack
 
@@ -90,7 +90,7 @@ npm run package  # Create distributable
 ### Project Structure
 
 ```
-clipforge/
+clipcreate/
 ├── src/
 │   ├── main/           # Electron main process
 │   │   ├── main.js

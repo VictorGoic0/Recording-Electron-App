@@ -1,4 +1,4 @@
-# Active Context: ClipForge
+# Active Context: ClipCreate
 
 ## Current Work Focus
 

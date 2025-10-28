@@ -1,5 +1,5 @@
 {
-  "name": "clipforge",
+  "name": "clipcreate",
   "version": "1.0.0",
   "description": "Desktop video editing app",
   "main": "src/main/main.js",
@@ -27,8 +27,8 @@
     "vite": "^7.1.12"
   },
   "build": {
-    "appId": "com.clipforge.app",
-    "productName": "ClipForge",
+    "appId": "com.clipcreate.app",
+    "productName": "ClipCreate",
     "win": {
       "target": "nsis"
     },

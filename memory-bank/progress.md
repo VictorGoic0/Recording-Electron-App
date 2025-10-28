@@ -1,4 +1,4 @@
-# Progress: ClipForge
+# Progress: ClipCreate
 
 ## Current Status: Project Initialization (Day 1)
 

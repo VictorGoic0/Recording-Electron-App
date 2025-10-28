@@ -6,7 +6,7 @@ function App() {
     <div className="app-container">
       <header className="app-header">
         <div className="header-left">
-          <h1>ClipForge</h1>
+          <h1>ClipCreate</h1>
           <span className="version">v1.0.0</span>
         </div>
         <div className="header-right">
