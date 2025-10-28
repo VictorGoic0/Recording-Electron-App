@@ -172,7 +172,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Prevent default browser behavior (opening file in window)
   - Visual feedback when dragging over drop zone
 
-- [ ] 4. Create media file processing pipeline
+- [x] 4. Create media file processing pipeline
 
   - When file imported, generate unique ID (use `uuid`)
   - Extract metadata using FFmpeg (duration, resolution, file size)

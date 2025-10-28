@@ -1,9 +1,19 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld("electron", {
   platform: process.platform,
+
+  // Utility functions
+  utils: {
+    /**
+     * Get file path from File object (needed for drag-and-drop in Electron)
+     * @param {File} file - File object from drag-and-drop
+     * @returns {string} Full file system path
+     */
+    getPathForFile: (file) => webUtils.getPathForFile(file),
+  },
 
   // File system operations
   fileSystem: {
@@ -12,6 +22,14 @@ contextBridge.exposeInMainWorld("electron", {
      * @returns {Promise<{success: boolean, filePaths?: string[], canceled?: boolean, error?: string}>}
      */
     showOpenDialog: () => ipcRenderer.invoke("show-open-dialog"),
+
+    /**
+     * Process video file and extract metadata
+     * @param {string} filePath - Path to video file
+     * @returns {Promise<{success: boolean, data?: object, error?: string}>}
+     */
+    processVideoFile: (filePath) =>
+      ipcRenderer.invoke("process-video-file", filePath),
   },
 
   // FFmpeg operations

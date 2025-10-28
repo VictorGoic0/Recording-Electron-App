@@ -232,3 +232,44 @@ ipcMain.handle("show-open-dialog", async (event) => {
     };
   }
 });
+
+/**
+ * Process imported video file - extract metadata and generate thumbnail
+ */
+ipcMain.handle("process-video-file", async (event, filePath) => {
+  try {
+    console.log("[IPC] Processing video file:", filePath);
+
+    // Extract all metadata in parallel
+    const [duration, resolution, fileSize, codecInfo, thumbnail] =
+      await Promise.all([
+        getVideoDuration(filePath),
+        getVideoResolution(filePath),
+        getFileSize(filePath),
+        getCodecInfo(filePath),
+        generateThumbnail(filePath, 1),
+      ]);
+
+    const filename = path.basename(filePath);
+
+    return {
+      success: true,
+      data: {
+        filePath,
+        filename,
+        duration,
+        resolution,
+        fileSize,
+        codecInfo,
+        thumbnail,
+      },
+    };
+  } catch (error) {
+    console.error("[IPC] Failed to process video file:", error);
+    return {
+      success: false,
+      error: error.message,
+      filePath,
+    };
+  }
+});
