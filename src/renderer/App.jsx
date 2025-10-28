@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import MediaLibrary from "./components/MediaLibrary";
+import Toast from "./components/Toast";
 import { useMedia } from "./context/MediaContext";
 import { v4 as uuidv4 } from "uuid";
 
 function App() {
   const { clips, selectedClipId, addMultipleMedia, selectClip, removeMedia } = useMedia();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  // Toast notification helper
+  const showToast = (message, type = "info") => {
+    const id = uuidv4();
+    setToasts((prev) => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
 
   // Prevent default drag-and-drop behavior on the entire app
   // This prevents files from opening in the Electron window
@@ -40,6 +52,7 @@ function App() {
         console.log("File selection canceled");
       } else if (result.error) {
         console.error("Error opening file dialog:", result.error);
+        showToast("Failed to open file dialog", "error");
       }
     } else {
       // Files from drag-and-drop - extract file paths
@@ -66,6 +79,7 @@ function App() {
         await processImportedFiles(filePaths);
       } else {
         console.error("No valid file paths found in dropped files");
+        showToast("No valid video files found", "warning");
       }
     }
   };
@@ -76,11 +90,20 @@ function App() {
     setIsProcessing(true);
     const newClips = [];
     const errors = [];
+    const unsupportedFiles = [];
 
     console.log(`Processing ${filePaths.length} file(s)...`);
 
     for (const filePath of filePaths) {
       try {
+        // Check file extension
+        const ext = filePath.toLowerCase().split(".").pop();
+        if (!["mp4", "mov", "webm"].includes(ext)) {
+          unsupportedFiles.push(filePath);
+          console.warn(`✗ Unsupported format: ${filePath}`);
+          continue;
+        }
+
         console.log(`Processing: ${filePath}`);
         
         // Process the video file using FFmpeg
@@ -96,7 +119,12 @@ function App() {
           newClips.push(clip);
           console.log(`✓ Successfully processed: ${clip.filename}`);
         } else {
-          errors.push({ filePath, error: result.error });
+          // Check if it's a corrupted file error
+          if (result.error.includes("Invalid data") || result.error.includes("moov atom not found")) {
+            errors.push({ filePath, error: "File appears to be corrupted or incomplete" });
+          } else {
+            errors.push({ filePath, error: result.error });
+          }
           console.error(`✗ Failed to process: ${filePath}`, result.error);
         }
       } catch (error) {
@@ -108,13 +136,25 @@ function App() {
     // Add all successfully processed clips to state using context
     if (newClips.length > 0) {
       addMultipleMedia(newClips);
+      showToast(`Successfully imported ${newClips.length} video${newClips.length > 1 ? "s" : ""}`, "success");
       console.log(`✓ Added ${newClips.length} clip(s) to library`);
     }
 
-    // Report errors if any
+    // Report unsupported files
+    if (unsupportedFiles.length > 0) {
+      showToast(
+        `${unsupportedFiles.length} file(s) skipped. Unsupported format. Please use MP4, MOV, or WebM`,
+        "warning"
+      );
+    }
+
+    // Report errors
     if (errors.length > 0) {
       console.error(`Failed to process ${errors.length} file(s):`, errors);
-      // TODO: Show error notification to user (in future subtask)
+      const errorMessage = errors.length === 1
+        ? `Failed to import "${errors[0].filePath.split(/[\\/]/).pop()}": ${errors[0].error}`
+        : `Failed to import ${errors.length} file(s). Check console for details.`;
+      showToast(errorMessage, "error");
     }
 
     setIsProcessing(false);
@@ -174,6 +214,7 @@ function App() {
             selectedClipId={selectedClipId}
             onRemoveClip={handleRemoveClip}
             onRevealInExplorer={handleRevealInExplorer}
+            isProcessing={isProcessing}
           />
 
           {/* Video Preview - Center Panel */}
@@ -217,6 +258,18 @@ function App() {
             </div>
           </div>
         </section>
+      </div>
+
+      {/* Toast Notifications */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
       </div>
     </div>
   );

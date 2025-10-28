@@ -1,5 +1,7 @@
 /* ClipCreate - Video Editing App Styles */
 
+@import "./components/Toast.css";
+
 /* ============================================
    CSS Variables - Theme System
    ============================================ */

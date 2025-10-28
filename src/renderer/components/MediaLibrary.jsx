@@ -12,7 +12,8 @@ function MediaLibrary({
   onClipSelect, 
   selectedClipId,
   onRemoveClip,
-  onRevealInExplorer 
+  onRevealInExplorer,
+  isProcessing = false
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
@@ -132,8 +133,12 @@ function MediaLibrary({
     <aside className="media-library">
       <div className="panel-header">
         <h2>Media Library</h2>
-        <button className="btn-primary" onClick={handleImportClick}>
-          + Import
+        <button 
+          className="btn-primary" 
+          onClick={handleImportClick}
+          disabled={isProcessing}
+        >
+          {isProcessing ? "Processing..." : "+ Import"}
         </button>
       </div>
 

@@ -201,14 +201,14 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Add "Reveal in Finder/Explorer" option
   - Handle menu item clicks
 
-- [ ] 8. Implement error handling
+- [x] 8. Implement error handling
 
   - Catch unsupported file formats
   - Show error message: "Unsupported format. Please use MP4, MOV, or WebM"
   - Handle corrupted files gracefully
   - Display error toast or modal
 
-- [ ] 9. Add loading states
+- [x] 9. Add loading states
   - Show spinner while processing large files
   - Display progress for thumbnail generation
   - Disable import button while processing
