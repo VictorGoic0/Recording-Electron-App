@@ -4,10 +4,12 @@
   "description": "Desktop video editing app",
   "main": "src/main/main.js",
   "scripts": {
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "cross-env NODE_ENV=development electron .",
+    "build": "vite build && electron-builder",
+    "build:renderer": "vite build",
     "start": "electron .",
-    "dev": "concurrently \"npm run start\" \"npm run start-renderer\"",
-    "start-renderer": "cd src/renderer && npm start",
-    "build": "electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
