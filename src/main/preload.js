@@ -30,6 +30,14 @@ contextBridge.exposeInMainWorld("electron", {
      */
     processVideoFile: (filePath) =>
       ipcRenderer.invoke("process-video-file", filePath),
+
+    /**
+     * Reveal file in Explorer (Windows) or Finder (macOS)
+     * @param {string} filePath - Path to file
+     * @returns {Promise<{success: boolean, error?: string}>}
+     */
+    revealInExplorer: (filePath) =>
+      ipcRenderer.invoke("reveal-in-explorer", filePath),
   },
 
   // FFmpeg operations

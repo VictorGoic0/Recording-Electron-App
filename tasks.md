@@ -186,7 +186,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Add actions: `addMedia`, `removeMedia`
   - Persist state in memory (no database needed for MVP)
 
-- [ ] 6. Display imported clips in grid
+- [x] 6. Display imported clips in grid
 
   - Map over media state and render ClipCard components
   - Show thumbnail image
@@ -194,7 +194,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Show duration badge on thumbnail
   - Show resolution and file size on hover
 
-- [ ] 7. Add right-click context menu
+- [x] 7. Add right-click context menu
 
   - Install `electron-context-menu` or create custom
   - Add "Remove from Library" option

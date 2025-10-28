@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const {
@@ -270,6 +270,25 @@ ipcMain.handle("process-video-file", async (event, filePath) => {
       success: false,
       error: error.message,
       filePath,
+    };
+  }
+});
+
+/**
+ * Reveal file in Explorer (Windows) or Finder (macOS)
+ */
+ipcMain.handle("reveal-in-explorer", async (event, filePath) => {
+  try {
+    console.log("[IPC] Revealing file in explorer:", filePath);
+    shell.showItemInFolder(filePath);
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("[IPC] Failed to reveal file:", error);
+    return {
+      success: false,
+      error: error.message,
     };
   }
 });

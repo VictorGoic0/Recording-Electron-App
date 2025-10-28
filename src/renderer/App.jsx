@@ -5,7 +5,7 @@ import { useMedia } from "./context/MediaContext";
 import { v4 as uuidv4 } from "uuid";
 
 function App() {
-  const { clips, selectedClipId, addMultipleMedia, selectClip } = useMedia();
+  const { clips, selectedClipId, addMultipleMedia, selectClip, removeMedia } = useMedia();
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Prevent default drag-and-drop behavior on the entire app
@@ -125,6 +125,28 @@ function App() {
     console.log("Clip selected:", clip);
   };
 
+  const handleRemoveClip = (clipId) => {
+    const clip = clips.find((c) => c.id === clipId);
+    if (clip) {
+      console.log("Removing clip from library:", clip.filename);
+      removeMedia(clipId);
+    }
+  };
+
+  const handleRevealInExplorer = async (filePath) => {
+    if (!filePath) {
+      console.error("No file path provided");
+      return;
+    }
+    
+    try {
+      await window.electron.fileSystem.revealInExplorer(filePath);
+      console.log("Revealed file in explorer:", filePath);
+    } catch (error) {
+      console.error("Failed to reveal file in explorer:", error);
+    }
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -150,6 +172,8 @@ function App() {
             onImport={handleImport}
             onClipSelect={handleClipSelect}
             selectedClipId={selectedClipId}
+            onRemoveClip={handleRemoveClip}
+            onRevealInExplorer={handleRevealInExplorer}
           />
 
           {/* Video Preview - Center Panel */}

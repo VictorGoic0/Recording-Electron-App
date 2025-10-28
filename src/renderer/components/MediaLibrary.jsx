@@ -6,8 +6,16 @@ import "./MediaLibrary.css";
  * Displays imported video clips in a grid layout with thumbnails
  * Handles file import via button click or drag-and-drop
  */
-function MediaLibrary({ clips = [], onImport, onClipSelect, selectedClipId }) {
+function MediaLibrary({ 
+  clips = [], 
+  onImport, 
+  onClipSelect, 
+  selectedClipId,
+  onRemoveClip,
+  onRevealInExplorer 
+}) {
   const [isDragging, setIsDragging] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
 
   const handleImportClick = () => {
     if (onImport) {
@@ -82,6 +90,44 @@ function MediaLibrary({ clips = [], onImport, onClipSelect, selectedClipId }) {
     }
   };
 
+  const handleContextMenu = (event, clip) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    setContextMenu({
+      clip,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  const handleRemoveClick = () => {
+    if (contextMenu && onRemoveClip) {
+      onRemoveClip(contextMenu.clip.id);
+    }
+    closeContextMenu();
+  };
+
+  const handleRevealClick = () => {
+    if (contextMenu && onRevealInExplorer) {
+      onRevealInExplorer(contextMenu.clip.filePath);
+    }
+    closeContextMenu();
+  };
+
+  // Close context menu when clicking anywhere
+  React.useEffect(() => {
+    if (contextMenu) {
+      const handleClick = () => closeContextMenu();
+      document.addEventListener("click", handleClick);
+      return () => document.removeEventListener("click", handleClick);
+    }
+  }, [contextMenu]);
+
   return (
     <aside className="media-library">
       <div className="panel-header">
@@ -114,6 +160,7 @@ function MediaLibrary({ clips = [], onImport, onClipSelect, selectedClipId }) {
                 clip={clip}
                 isSelected={clip.id === selectedClipId}
                 onClick={() => handleClipClick(clip)}
+                onContextMenu={(e) => handleContextMenu(e, clip)}
               />
             ))}
           </div>
@@ -127,6 +174,29 @@ function MediaLibrary({ clips = [], onImport, onClipSelect, selectedClipId }) {
             </div>
           </div>
         )}
+
+        {contextMenu && (
+          <div
+            className="context-menu"
+            style={{
+              position: "fixed",
+              top: contextMenu.y,
+              left: contextMenu.x,
+              zIndex: 1000,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="context-menu-item" onClick={handleRevealClick}>
+              <span className="context-menu-icon">📁</span>
+              <span>Reveal in {window.electron.platform === 'darwin' ? 'Finder' : 'Explorer'}</span>
+            </div>
+            <div className="context-menu-divider"></div>
+            <div className="context-menu-item danger" onClick={handleRemoveClick}>
+              <span className="context-menu-icon">🗑️</span>
+              <span>Remove from Library</span>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -136,7 +206,7 @@ function MediaLibrary({ clips = [], onImport, onClipSelect, selectedClipId }) {
  * ClipCard Component
  * Individual clip card showing thumbnail, filename, and metadata
  */
-function ClipCard({ clip, isSelected, onClick }) {
+function ClipCard({ clip, isSelected, onClick, onContextMenu }) {
   const formatDuration = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -157,6 +227,7 @@ function ClipCard({ clip, isSelected, onClick }) {
     <div
       className={`clip-card ${isSelected ? "selected" : ""}`}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       title={clip.filename}
     >
       <div className="clip-thumbnail">
