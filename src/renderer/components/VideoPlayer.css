@@ -91,13 +91,17 @@
   flex: 1;
   cursor: pointer;
   padding: 8px 0;
+  display: flex;
+  align-items: center;
+  min-width: 100px;
 }
 
 .progress-bar {
   width: 100%;
-  height: 6px;
-  background: var(--bg-secondary);
-  border-radius: 3px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
   position: relative;
   overflow: hidden;
 }
@@ -109,12 +113,35 @@
   transition: width 0.1s linear;
 }
 
+.progress-bar-handle {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 .progress-bar-container:hover .progress-bar {
-  height: 8px;
+  height: 12px;
 }
 
 .progress-bar-container:hover .progress-bar-fill {
   background: var(--accent-hover);
+}
+
+.progress-bar-container:hover .progress-bar-handle {
+  opacity: 1;
+}
+
+.progress-bar-container:active .progress-bar-handle {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.2);
 }
 
 /* Volume Controls */

@@ -11,12 +11,14 @@ import "./VideoPlayer.css";
  */
 function VideoPlayer({ selectedClip }) {
   const videoRef = useRef(null);
+  const progressBarRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState(null);
+  const [isSeeking, setIsSeeking] = useState(false);
 
   // Reset player and load new source when clip changes
   useEffect(() => {
@@ -206,16 +208,42 @@ function VideoPlayer({ selectedClip }) {
     }
   };
 
-  const handleSeek = (e) => {
-    if (!videoRef.current || !duration) return;
+  const seekToPosition = (clientX) => {
+    if (!videoRef.current || !progressBarRef.current || !duration) return;
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const time = pos * duration;
 
     videoRef.current.currentTime = time;
     setCurrentTime(time);
   };
+
+  const handleProgressBarMouseDown = (e) => {
+    setIsSeeking(true);
+    seekToPosition(e.clientX);
+  };
+
+  // Add global mouse event listeners for dragging
+  useEffect(() => {
+    if (!isSeeking) return;
+
+    const handleMouseMove = (e) => {
+      seekToPosition(e.clientX);
+    };
+
+    const handleMouseUp = () => {
+      setIsSeeking(false);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isSeeking, duration]);
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return "0:00";
@@ -274,11 +302,20 @@ function VideoPlayer({ selectedClip }) {
                 {formatTime(currentTime)} / {formatTime(duration)}
               </div>
 
-              <div className="progress-bar-container" onClick={handleSeek}>
+              <div
+                ref={progressBarRef}
+                className="progress-bar-container"
+                onMouseDown={handleProgressBarMouseDown}
+                style={{ cursor: isSeeking ? "grabbing" : "pointer" }}
+              >
                 <div className="progress-bar">
                   <div
                     className="progress-bar-fill"
                     style={{ width: `${progress}%` }}
+                  />
+                  <div
+                    className="progress-bar-handle"
+                    style={{ left: `${progress}%` }}
                   />
                 </div>
               </div>

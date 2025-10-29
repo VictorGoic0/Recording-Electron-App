@@ -252,14 +252,14 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Sync button state with video playback state
   - Handle click and keyboard events
 
-- [ ] 4. Add time display
+- [x] 4. Add time display
 
   - Show current time in MM:SS format
   - Show total duration in MM:SS format
   - Display as "00:45 / 02:30"
   - Update current time during playback
 
-- [ ] 5. Add progress bar / scrubber
+- [x] 5. Add progress bar / scrubber
 
   - Visual progress bar showing playback position
   - Make progress bar clickable (seek to clicked position)
