@@ -106,11 +106,11 @@
 .progress-bar {
   width: 100%;
   height: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 5px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .progress-bar-fill {
@@ -118,21 +118,22 @@
   background: var(--accent-primary);
   border-radius: 3px;
   transition: width 0.1s linear;
+  box-shadow: 0 0 4px rgba(0, 120, 212, 0.5);
 }
 
 .progress-bar-handle {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   background: #fff;
-  border: 2px solid #0078d4;
+  border: 3px solid var(--accent-primary);
   border-radius: 50%;
   opacity: 1;
-  transition: transform 0.2s ease;
+  transition: all 0.2s ease;
   pointer-events: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   z-index: 10;
 }
 
@@ -142,15 +143,18 @@
 
 .progress-bar-container:hover .progress-bar-fill {
   background: #106ebe;
+  box-shadow: 0 0 6px rgba(0, 120, 212, 0.7);
 }
 
 .progress-bar-container:hover .progress-bar-handle {
-  transform: translate(-50%, -50%) scale(1.1);
+  transform: translate(-50%, -50%) scale(1.15);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
 }
 
 .progress-bar-container:active .progress-bar-handle,
 .progress-bar-container.is-seeking .progress-bar-handle {
-  transform: translate(-50%, -50%) scale(1.3);
+  transform: translate(-50%, -50%) scale(1.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
 }
 
 /* Volume Controls */
