@@ -1,5 +1,14 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  shell,
+  protocol,
+  net,
+} = require("electron");
 const path = require("path");
+const fs = require("fs");
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 const {
   verifyFFmpegInstallation,
@@ -23,6 +32,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
+      webSecurity: true, // Keep security enabled
     },
   });
 
@@ -39,7 +49,48 @@ function createWindow() {
   });
 }
 
-app.on("ready", async () => {
+app.whenReady().then(async () => {
+  // Register custom protocol for loading local video files securely
+  // Using modern protocol.handle API (replaces deprecated registerFileProtocol)
+  // Returns a Response object (fetch API standard) instead of using callbacks
+  protocol.handle("local-video", (request) => {
+    // Extract the file path from the URL
+    // Format: local-video://filepath
+    const url = request.url.replace("local-video://", "");
+
+    // Decode URL-encoded characters (e.g., %20 -> space)
+    const filePath = decodeURIComponent(url);
+
+    console.log("[Protocol] Loading video file:", filePath);
+
+    try {
+      // Verify file exists before serving
+      if (!fs.existsSync(filePath)) {
+        console.error("[Protocol] File not found:", filePath);
+        return new Response("File not found", {
+          status: 404,
+          headers: { "content-type": "text/plain" },
+        });
+      }
+
+      // Read the file and return as response
+      // Using net.fetch with file:// URL to properly serve the file
+      const normalizedPath = filePath.replace(/\\/g, "/");
+      const fileUrl = normalizedPath.startsWith("/")
+        ? `file://${normalizedPath}`
+        : `file:///${normalizedPath}`;
+
+      console.log("[Protocol] Serving file via:", fileUrl);
+      return net.fetch(fileUrl);
+    } catch (error) {
+      console.error("[Protocol] Error loading file:", error);
+      return new Response(`Error loading file: ${error.message}`, {
+        status: 500,
+        headers: { "content-type": "text/plain" },
+      });
+    }
+  });
+
   // Verify FFmpeg installation on startup
   try {
     const version = await verifyFFmpegInstallation();

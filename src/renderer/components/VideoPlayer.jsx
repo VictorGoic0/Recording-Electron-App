@@ -4,6 +4,10 @@ import "./VideoPlayer.css";
 /**
  * VideoPlayer Component
  * HTML5 video player with custom controls for previewing clips
+ * 
+ * IMPORTANT: Uses custom 'local-video://' protocol registered in main.js
+ * to securely load local video files without triggering Electron's
+ * file:// security restrictions.
  */
 function VideoPlayer({ selectedClip }) {
   const videoRef = useRef(null);
@@ -14,13 +18,70 @@ function VideoPlayer({ selectedClip }) {
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState(null);
 
-  // Reset player when clip changes
+  // Reset player and load new source when clip changes
   useEffect(() => {
+    if (!selectedClip) {
+      // No clip selected - reset everything
+      setError(null);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      return;
+    }
+
     if (videoRef.current) {
+      // Pause current playback
       videoRef.current.pause();
       setIsPlaying(false);
       setCurrentTime(0);
       setError(null);
+
+      // Load new video source
+      const video = videoRef.current;
+      
+      // Verify file path exists
+      if (!selectedClip.filePath) {
+        console.error("Selected clip has no file path:", selectedClip);
+        setError("Video file path is missing");
+        return;
+      }
+
+      // Use custom local-video:// protocol to load files securely
+      // This protocol is registered in the main process and bypasses Electron's
+      // file:// security restrictions while maintaining safety
+      let videoSrc = selectedClip.filePath;
+      
+      // If already using a special protocol (blob, local-video), keep it as-is
+      if (!videoSrc.startsWith("local-video://") && !videoSrc.startsWith("blob:")) {
+        // Encode the file path to handle special characters (spaces, etc.)
+        // but keep forward slashes and colons unencoded for proper path handling
+        const encodedPath = encodeURI(videoSrc);
+        
+        // Use our custom protocol
+        videoSrc = `local-video://${encodedPath}`;
+      }
+
+      console.log(`Loading video: ${selectedClip.filename}`);
+      console.log(`Source URL: ${videoSrc}`);
+
+      // Update video source
+      video.src = videoSrc;
+      
+      // Load the video metadata
+      video.load();
+
+      // Handle load errors
+      const handleLoadError = (e) => {
+        console.error("Failed to load video:", e);
+        setError("Failed to load video. File may have been moved or deleted.");
+      };
+
+      video.addEventListener("error", handleLoadError, { once: true });
+
+      // Cleanup
+      return () => {
+        video.removeEventListener("error", handleLoadError);
+      };
     }
   }, [selectedClip]);
 
@@ -139,7 +200,6 @@ function VideoPlayer({ selectedClip }) {
             <div className="video-container">
               <video
                 ref={videoRef}
-                src={selectedClip.filePath ? `file://${selectedClip.filePath}` : ""}
                 onLoadedMetadata={handleLoadedMetadata}
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleEnded}

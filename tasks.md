@@ -238,7 +238,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Add ref for programmatic control
   - Style preview window (16:9 aspect ratio, black background)
 
-- [ ] 2. Implement video source loading
+- [x] 2. Implement video source loading
 
   - Load selected clip from media library into player
   - Handle file path (use `file://` protocol or convert to blob URL)
