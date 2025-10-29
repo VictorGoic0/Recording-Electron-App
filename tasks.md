@@ -231,7 +231,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 
 ### Subtasks
 
-- [ ] 1. Create VideoPlayer component
+- [x] 1. Create VideoPlayer component
 
   - New file: `/src/renderer/components/VideoPlayer.jsx`
   - Use HTML5 `<video>` element as base

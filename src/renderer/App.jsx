@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import MediaLibrary from "./components/MediaLibrary";
+import VideoPlayer from "./components/VideoPlayer";
 import Toast from "./components/Toast";
 import { useMedia } from "./context/MediaContext";
 import { v4 as uuidv4 } from "uuid";
 
 function App() {
-  const { clips, selectedClipId, addMultipleMedia, selectClip, removeMedia } = useMedia();
+  const { clips, selectedClipId, selectedClip, addMultipleMedia, selectClip, removeMedia } = useMedia();
   const [isProcessing, setIsProcessing] = useState(false);
   const [toasts, setToasts] = useState([]);
 
@@ -218,24 +219,7 @@ function App() {
           />
 
           {/* Video Preview - Center Panel */}
-          <section className="video-preview">
-            <div className="panel-header">
-              <h2>Preview</h2>
-              <div className="preview-controls">
-                <button className="btn-icon" title="Play/Pause">▶</button>
-                <button className="btn-icon" title="Stop">⏹</button>
-              </div>
-            </div>
-            <div className="preview-content">
-              <div className="placeholder-content">
-                <div className="placeholder-icon">🎬</div>
-                <p>No video selected</p>
-                <p className="placeholder-hint">
-                  Select a clip from the media library
-                </p>
-              </div>
-            </div>
-          </section>
+          <VideoPlayer selectedClip={selectedClip} />
         </div>
 
         {/* Timeline - Bottom Panel */}
