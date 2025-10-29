@@ -219,7 +219,7 @@ function App() {
           />
 
           {/* Video Preview - Center Panel */}
-          <VideoPlayer selectedClip={selectedClip} />
+          <VideoPlayer selectedClip={selectedClip} onShowToast={showToast} />
         </div>
 
         {/* Timeline - Bottom Panel */}

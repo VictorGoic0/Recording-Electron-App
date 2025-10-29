@@ -9,7 +9,7 @@ import "./VideoPlayer.css";
  * to securely load local video files without triggering Electron's
  * file:// security restrictions.
  */
-function VideoPlayer({ selectedClip }) {
+function VideoPlayer({ selectedClip, onShowToast }) {
   const videoRef = useRef(null);
   const progressBarRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -45,6 +45,9 @@ function VideoPlayer({ selectedClip }) {
       if (!selectedClip.filePath) {
         console.error("Selected clip has no file path:", selectedClip);
         setError("Video file path is missing");
+        if (onShowToast) {
+          onShowToast("Video file path is missing. Please select another clip.", "error");
+        }
         return;
       }
 
@@ -72,7 +75,11 @@ function VideoPlayer({ selectedClip }) {
       // Handle load errors
       const handleLoadError = (e) => {
         console.error("Failed to load video:", e);
-        setError("Failed to load video. File may have been moved or deleted.");
+        const errorMessage = "Failed to load video. File may have been moved or deleted.";
+        setError(errorMessage);
+        if (onShowToast) {
+          onShowToast(errorMessage, "error");
+        }
       };
 
       video.addEventListener("error", handleLoadError, { once: true });
@@ -96,6 +103,25 @@ function VideoPlayer({ selectedClip }) {
     }
   }, []);
 
+  const togglePlayPause = useCallback(() => {
+    if (!videoRef.current || !selectedClip) return;
+
+    if (isPlaying) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      videoRef.current.play().catch((err) => {
+        console.error("Play error:", err);
+        const errorMessage = "Failed to play video";
+        setError(errorMessage);
+        if (onShowToast) {
+          onShowToast(errorMessage, "error");
+        }
+      });
+      setIsPlaying(true);
+    }
+  }, [isPlaying, selectedClip, onShowToast]);
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -113,6 +139,52 @@ function VideoPlayer({ selectedClip }) {
           e.preventDefault();
           togglePlayPause();
           break;
+        case "ArrowLeft":
+          e.preventDefault();
+          // Skip backward 10 seconds
+          if (videoRef.current && duration) {
+            const newTime = Math.max(currentTime - 10, 0);
+            videoRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+          }
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          // Skip forward 10 seconds
+          if (videoRef.current && duration) {
+            const newTime = Math.min(currentTime + 10, duration);
+            videoRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+          }
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          // Increase volume
+          {
+            const newVolume = Math.min(volume + 0.1, 1);
+            setVolume(newVolume);
+            if (videoRef.current) {
+              videoRef.current.volume = newVolume;
+              if (isMuted) {
+                videoRef.current.muted = false;
+                setIsMuted(false);
+              }
+            }
+            localStorage.setItem("videoPlayerVolume", newVolume.toString());
+          }
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          // Decrease volume
+          {
+            const newVolume = Math.max(volume - 0.1, 0);
+            setVolume(newVolume);
+            if (videoRef.current) {
+              videoRef.current.volume = newVolume;
+            }
+            localStorage.setItem("videoPlayerVolume", newVolume.toString());
+          }
+          break;
         default:
           break;
       }
@@ -123,12 +195,20 @@ function VideoPlayer({ selectedClip }) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedClip, isPlaying]); // Re-attach when selectedClip or isPlaying changes
+  }, [selectedClip, isPlaying, currentTime, duration, volume, isMuted, togglePlayPause]);
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
-      console.log("[VideoPlayer] Metadata loaded, duration:", videoRef.current.duration);
+      
+      // Check for audio-only files
+      if (videoRef.current.videoWidth === 0 && videoRef.current.videoHeight === 0) {
+        const errorMessage = "Audio-only files are not supported. Please use a video file.";
+        setError(errorMessage);
+        if (onShowToast) {
+          onShowToast(errorMessage, "warning");
+        }
+      }
     }
   };
 
@@ -153,41 +233,33 @@ function VideoPlayer({ selectedClip }) {
       
       // Map error codes to user-friendly messages
       const errorMessages = {
-        1: "MEDIA_ERR_ABORTED: Video loading was aborted",
-        2: "MEDIA_ERR_NETWORK: Network error while loading video",
-        3: "MEDIA_ERR_DECODE: Video decoding failed (corrupted or unsupported format)",
-        4: "MEDIA_ERR_SRC_NOT_SUPPORTED: Video format not supported or source not found",
+        1: "Video loading was aborted",
+        2: "Network error while loading video",
+        3: "Video decoding failed - file may be corrupted or use an unsupported format",
+        4: "Video format not supported or file not found",
       };
       
-      const detailedError = errorMessages[errorCode] || `Unknown error (code: ${errorCode})`;
+      const userFriendlyError = errorMessages[errorCode] || "Unable to load video";
       console.error("[VideoPlayer] Media Error Details:", {
         code: errorCode,
         message: errorMessage,
-        description: detailedError,
+        userMessage: userFriendlyError,
         src: videoRef.current.src,
       });
       
-      setError(`Failed to load video: ${detailedError}`);
+      setError(userFriendlyError);
+      if (onShowToast) {
+        onShowToast(userFriendlyError, "error");
+      }
     } else {
-      setError("Failed to load video. File may be corrupted or in an unsupported format.");
+      const errorMessage = "Failed to load video. File may be corrupted or in an unsupported format.";
+      setError(errorMessage);
+      if (onShowToast) {
+        onShowToast(errorMessage, "error");
+      }
     }
     
     setIsPlaying(false);
-  };
-
-  const togglePlayPause = () => {
-    if (!videoRef.current || !selectedClip) return;
-
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      videoRef.current.play().catch((err) => {
-        console.error("Play error:", err);
-        setError("Failed to play video");
-      });
-      setIsPlaying(true);
-    }
   };
 
   const handleVolumeChange = (e) => {
@@ -224,7 +296,6 @@ function VideoPlayer({ selectedClip }) {
   }, [duration]);
 
   const handleProgressBarMouseDown = (e) => {
-    console.log("[VideoPlayer] Progress bar mouse down");
     setIsSeeking(true);
     seekToPosition(e.clientX);
   };
@@ -233,14 +304,11 @@ function VideoPlayer({ selectedClip }) {
   useEffect(() => {
     if (!isSeeking) return;
 
-    console.log("[VideoPlayer] Seeking started - attaching global listeners");
-
     const handleMouseMove = (e) => {
       seekToPosition(e.clientX);
     };
 
     const handleMouseUp = () => {
-      console.log("[VideoPlayer] Seeking ended");
       setIsSeeking(false);
     };
 

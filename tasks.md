@@ -273,22 +273,22 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Remember volume preference
   - Visual feedback for volume level
 
-- [ ] 7. Implement seeking functionality
+- [x] 7. Implement seeking functionality
 
   - Allow jumping to specific time by clicking timeline
   - Smooth seeking without lag
   - Update video currentTime property
   - Show frame at new position
 
-- [ ] 8. Add keyboard shortcuts
+- [x] 8. Add keyboard shortcuts
 
   - Spacebar: Play/Pause
-  - Arrow Left: Skip back 5 seconds
-  - Arrow Right: Skip forward 5 seconds
+  - Arrow Left: Skip back 10 seconds
+  - Arrow Right: Skip forward 10 seconds
   - Arrow Up: Increase volume
   - Arrow Down: Decrease volume
 
-- [ ] 9. Handle edge cases
+- [x] 9. Handle edge cases
   - Video too large for preview window (scale to fit)
   - Audio-only files (show placeholder)
   - Unsupported codecs (show error message)
