@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 
 /**
  * Custom hook for screen recording using MediaRecorder API
@@ -41,9 +41,15 @@ export function useScreenRecording() {
    * @param {string} sourceId - Desktop source ID from desktopCapturer
    * @param {object} options - Recording options (bitrate, frameRate, etc.)
    */
-  const startRecording = useCallback(async (sourceId, options = {}) => {
+  const startRecording = async (sourceId, options = {}) => {
     try {
       setError(null);
+
+      // Clear any existing interval before starting
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
 
       // Request screen stream using getUserMedia with desktopCapturer source
       // In Electron, we use chromeMediaSource constraints for desktop capture
@@ -100,7 +106,7 @@ export function useScreenRecording() {
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Start recording timer
+      // Start recording timer - only one interval
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
@@ -117,34 +123,53 @@ export function useScreenRecording() {
         streamRef.current = null;
       }
     }
-  }, []);
+  };
 
   /**
    * Pause recording
    */
-  const pauseRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording && !isPaused) {
+  const pauseRecording = () => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "recording"
+    ) {
       mediaRecorderRef.current.pause();
       setIsPaused(true);
+
+      // Pause the timer
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+
       console.log("Recording paused");
     }
-  }, [isRecording, isPaused]);
+  };
 
   /**
    * Resume recording
    */
-  const resumeRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording && isPaused) {
+  const resumeRecording = () => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "paused"
+    ) {
       mediaRecorderRef.current.resume();
       setIsPaused(false);
+
+      // Resume the timer
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+
       console.log("Recording resumed");
     }
-  }, [isRecording, isPaused]);
+  };
 
   /**
    * Stop recording and return the recorded blob
    */
-  const stopRecording = useCallback(() => {
+  const stopRecording = () => {
     return new Promise((resolve, reject) => {
       if (!mediaRecorderRef.current) {
         reject(new Error("No active recording"));
@@ -152,6 +177,12 @@ export function useScreenRecording() {
       }
 
       try {
+        // Clear the timer immediately
+        if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current);
+          recordingIntervalRef.current = null;
+        }
+
         // Stop the MediaRecorder
         mediaRecorderRef.current.onstop = () => {
           // Combine all chunks into a single blob
@@ -167,11 +198,6 @@ export function useScreenRecording() {
             streamRef.current = null;
           }
 
-          if (recordingIntervalRef.current) {
-            clearInterval(recordingIntervalRef.current);
-            recordingIntervalRef.current = null;
-          }
-
           mediaRecorderRef.current = null;
           chunksRef.current = [];
           setIsRecording(false);
@@ -183,39 +209,37 @@ export function useScreenRecording() {
         };
 
         mediaRecorderRef.current.stop();
-
-        // Clear the timer
-        if (recordingIntervalRef.current) {
-          clearInterval(recordingIntervalRef.current);
-          recordingIntervalRef.current = null;
-        }
       } catch (err) {
         console.error("Error stopping recording:", err);
         setError(err.message || "Failed to stop recording");
         reject(err);
       }
     });
-  }, []);
+  };
 
   /**
    * Format recording time as MM:SS
    */
-  const formatRecordingTime = useCallback((seconds) => {
+  const formatRecordingTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes.toString().padStart(2, "0")}:${secs
       .toString()
       .padStart(2, "0")}`;
-  }, []);
+  };
 
   /**
    * Cleanup on unmount
    */
-  const cleanup = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
+  const cleanup = () => {
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    if (mediaRecorderRef.current) {
       stopRecording().catch(console.error);
     }
-  }, [isRecording, stopRecording]);
+  };
 
   return {
     isRecording,

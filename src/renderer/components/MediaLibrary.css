@@ -294,10 +294,10 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
   padding: 8px 16px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--color-border-light);
   border-radius: var(--border-radius-sm);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -306,25 +306,8 @@
   font-family: var(--font-family);
 }
 
-/* When recording: bright red with animation */
-.btn-record.recording {
-  background: rgba(232, 17, 35, 0.1);
-  border-color: var(--color-danger);
-}
-
-.btn-record.recording .record-icon {
-  background: var(--color-danger);
-  box-shadow: 0 0 0 2px rgba(232, 17, 35, 0.3);
-}
-
-.btn-record:hover:not(:disabled):not(.recording) {
-  background: #4a4a4a;
-  border-color: #666;
-}
-
-.btn-record:hover:not(:disabled).recording {
-  background: rgba(232, 17, 35, 0.15);
-  border-color: var(--color-danger);
+.btn-record:hover:not(:disabled) {
+  background: var(--color-bg-tertiary);
 }
 
 .btn-record:active:not(:disabled) {

@@ -39,18 +39,23 @@ function MediaLibrary({
     cleanup,
   } = useScreenRecording();
 
-  const handleImportClick = () => {
+  const handleImportClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     if (onImport) {
       onImport();
     }
   };
 
   const handleRecordClick = (event) => {
+    event.preventDefault();
     event.stopPropagation();
     setIsRecordDropdownOpen(!isRecordDropdownOpen);
   };
 
-  const handleRecordOptionSelect = (option) => {
+  const handleRecordOptionSelect = (event, option) => {
+    event.preventDefault();
+    event.stopPropagation();
     console.log("Record option selected:", option);
     setIsRecordDropdownOpen(false);
     
@@ -73,39 +78,19 @@ function MediaLibrary({
 
   const countdownIntervalRef = useRef(null);
 
-  const handleStartRecording = async () => {
+  const handleStartRecording = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     if (!selectedSource) return;
 
-    // Clear any existing countdown
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-
-    // Start countdown
-    setShowCountdown(true);
-    setCountdown(3);
-
-    // Countdown: 3, 2, 1
-    countdownIntervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current);
-            countdownIntervalRef.current = null;
-          }
-          setShowCountdown(false);
-          // Start recording after countdown
-          startRecording(selectedSource.id, {
-            bitrate: 2500000, // 2.5 Mbps
-          }).catch((error) => {
-            console.error("Failed to start recording:", error);
-            setShowCountdown(false);
-          });
-          return 0;
-        }
-        return prev - 1;
+    // Start recording immediately (no countdown for MVP)
+    try {
+      await startRecording(selectedSource.id, {
+        bitrate: 2500000, // 2.5 Mbps
       });
-    }, 1000);
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+    }
   };
 
   // Cleanup countdown on unmount
@@ -117,7 +102,9 @@ function MediaLibrary({
     };
   }, []);
 
-  const handleStopRecording = async () => {
+  const handleStopRecording = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     try {
       const blob = await stopRecording();
       setSelectedSource(null);
@@ -133,7 +120,8 @@ function MediaLibrary({
     return () => {
       cleanup();
     };
-  }, [cleanup]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleScreenSourcePickerClose = () => {
     setIsScreenSourcePickerOpen(false);
@@ -221,14 +209,18 @@ function MediaLibrary({
     setContextMenu(null);
   };
 
-  const handleRemoveClick = () => {
+  const handleRemoveClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     if (contextMenu && onRemoveClip) {
       onRemoveClip(contextMenu.clip.id);
     }
     closeContextMenu();
   };
 
-  const handleRevealClick = () => {
+  const handleRevealClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     if (contextMenu && onRevealInExplorer) {
       onRevealInExplorer(contextMenu.clip.filePath);
     }
@@ -299,21 +291,21 @@ function MediaLibrary({
             <div className="record-dropdown">
               <div 
                 className="record-dropdown-item" 
-                onClick={() => handleRecordOptionSelect("screen")}
+                onClick={(event) => handleRecordOptionSelect(event, "screen")}
               >
                 <span className="dropdown-icon">🖥️</span>
                 <span>Screen</span>
               </div>
               <div 
                 className="record-dropdown-item" 
-                onClick={() => handleRecordOptionSelect("webcam")}
+                onClick={(event) => handleRecordOptionSelect(event, "webcam")}
               >
                 <span className="dropdown-icon">📹</span>
                 <span>Webcam</span>
               </div>
               <div 
                 className="record-dropdown-item" 
-                onClick={() => handleRecordOptionSelect("both")}
+                onClick={(event) => handleRecordOptionSelect(event, "both")}
               >
                 <span className="dropdown-icon">🎬</span>
                 <span>Both</span>
@@ -350,7 +342,15 @@ function MediaLibrary({
                 <>
                   <button
                     className="btn-record-pause"
-                    onClick={isPaused ? resumeRecording : pauseRecording}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (isPaused) {
+                        resumeRecording();
+                      } else {
+                        pauseRecording();
+                      }
+                    }}
                   >
                     {isPaused ? "▶ Resume" : "⏸ Pause"}
                   </button>
