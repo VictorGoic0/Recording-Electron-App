@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 /**
  * MediaContext - Centralized state management for media clips
@@ -31,7 +31,7 @@ export function MediaProvider({ children }) {
    * Add a new media clip to the library
    * @param {Object} clip - Clip object with id, filename, path, duration, etc.
    */
-  const addMedia = useCallback((clip) => {
+  const addMedia = (clip) => {
     setClips((prevClips) => {
       // Check if clip with same ID already exists
       const exists = prevClips.some((existingClip) => existingClip.id === clip.id);
@@ -43,13 +43,13 @@ export function MediaProvider({ children }) {
       console.log(`[MediaContext] Adding clip: ${clip.filename}`);
       return [...prevClips, clip];
     });
-  }, []);
+  };
 
   /**
    * Add multiple media clips at once
    * @param {Array} newClips - Array of clip objects
    */
-  const addMultipleMedia = useCallback((newClips) => {
+  const addMultipleMedia = (newClips) => {
     setClips((prevClips) => {
       const existingIds = new Set(prevClips.map((clip) => clip.id));
       const uniqueNewClips = newClips.filter((clip) => !existingIds.has(clip.id));
@@ -61,13 +61,13 @@ export function MediaProvider({ children }) {
       console.log(`[MediaContext] Adding ${uniqueNewClips.length} clips`);
       return [...prevClips, ...uniqueNewClips];
     });
-  }, []);
+  };
 
   /**
    * Remove a media clip from the library
    * @param {string} clipId - ID of the clip to remove
    */
-  const removeMedia = useCallback((clipId) => {
+  const removeMedia = (clipId) => {
     setClips((prevClips) => {
       const clip = prevClips.find((c) => c.id === clipId);
       if (clip) {
@@ -80,57 +80,54 @@ export function MediaProvider({ children }) {
     if (selectedClipId === clipId) {
       setSelectedClipId(null);
     }
-  }, [selectedClipId]);
+  };
 
   /**
    * Update an existing media clip
    * @param {string} clipId - ID of the clip to update
    * @param {Object} updates - Partial clip object with fields to update
    */
-  const updateMedia = useCallback((clipId, updates) => {
+  const updateMedia = (clipId, updates) => {
     setClips((prevClips) =>
       prevClips.map((clip) =>
         clip.id === clipId ? { ...clip, ...updates } : clip
       )
     );
     console.log(`[MediaContext] Updated clip: ${clipId}`);
-  }, []);
+  };
 
   /**
    * Clear all media clips
    */
-  const clearAllMedia = useCallback(() => {
+  const clearAllMedia = () => {
     console.log(`[MediaContext] Clearing all ${clips.length} clips`);
     setClips([]);
     setSelectedClipId(null);
-  }, [clips.length]);
+  };
 
   /**
    * Get a clip by ID
    * @param {string} clipId - ID of the clip
    * @returns {Object|undefined} Clip object or undefined
    */
-  const getClipById = useCallback(
-    (clipId) => {
-      return clips.find((clip) => clip.id === clipId);
-    },
-    [clips]
-  );
+  const getClipById = (clipId) => {
+    return clips.find((clip) => clip.id === clipId);
+  };
 
   /**
    * Get the currently selected clip
    * @returns {Object|null} Selected clip object or null
    */
-  const getSelectedClip = useCallback(() => {
+  const getSelectedClip = () => {
     if (!selectedClipId) return null;
     return clips.find((clip) => clip.id === selectedClipId) || null;
-  }, [clips, selectedClipId]);
+  };
 
   /**
    * Select a clip
    * @param {string|null} clipId - ID of the clip to select, or null to deselect
    */
-  const selectClip = useCallback((clipId) => {
+  const selectClip = (clipId) => {
     setSelectedClipId(clipId);
     if (clipId) {
       const clip = clips.find((c) => c.id === clipId);
@@ -140,7 +137,7 @@ export function MediaProvider({ children }) {
     } else {
       console.log(`[MediaContext] Deselected clip`);
     }
-  }, [clips]);
+  };
 
   // Context value with state and actions
   const value = {

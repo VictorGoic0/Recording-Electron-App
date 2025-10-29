@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import "./VideoPlayer.css";
 
 /**
@@ -113,7 +113,7 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
     }
   }, []);
 
-  const togglePlayPause = useCallback(() => {
+  const togglePlayPause = () => {
     if (!videoRef.current || !selectedClip) return;
 
     if (isPlaying) {
@@ -130,7 +130,7 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
       });
       setIsPlaying(true);
     }
-  }, [isPlaying, selectedClip, onShowToast]);
+  };
 
   // Handle keyboard shortcuts
   useEffect(() => {

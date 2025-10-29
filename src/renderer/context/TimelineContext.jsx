@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 const TimelineContext = createContext();
@@ -24,7 +24,7 @@ export const TimelineProvider = ({ children }) => {
 
   // Clip structure: { id, fileId, startTime, endTime, position, track }
   
-  const addClipToTimeline = useCallback((clip, trackId, position) => {
+  const addClipToTimeline = (clip, trackId, position) => {
     if (!clip || !trackId) return;
 
     const newClip = {
@@ -50,9 +50,9 @@ export const TimelineProvider = ({ children }) => {
     );
 
     return newClip;
-  }, []);
+  };
 
-  const removeClipFromTimeline = useCallback((clipId, trackId) => {
+  const removeClipFromTimeline = (clipId, trackId) => {
     setTracks((prevTracks) =>
       prevTracks.map((track) =>
         track.id === trackId
@@ -60,9 +60,9 @@ export const TimelineProvider = ({ children }) => {
           : track
       )
     );
-  }, []);
+  };
 
-  const updateClipPosition = useCallback((clipId, trackId, newPosition, newStartTime = null, newEndTime = null) => {
+  const updateClipPosition = (clipId, trackId, newPosition, newStartTime = null, newEndTime = null) => {
     setTracks((prevTracks) =>
       prevTracks.map((track) =>
         track.id === trackId
@@ -82,9 +82,9 @@ export const TimelineProvider = ({ children }) => {
           : track
       )
     );
-  }, []);
+  };
 
-  const updateClipTrim = useCallback((clipId, trackId, newTrimStart = null, newTrimEnd = null) => {
+  const updateClipTrim = (clipId, trackId, newTrimStart = null, newTrimEnd = null) => {
     setTracks((prevTracks) =>
       prevTracks.map((track) =>
         track.id === trackId
@@ -103,11 +103,11 @@ export const TimelineProvider = ({ children }) => {
           : track
       )
     );
-  }, []);
+  };
 
-  const updatePlayhead = useCallback((newPlayhead) => {
+  const updatePlayhead = (newPlayhead) => {
     setPlayhead(newPlayhead);
-  }, []);
+  };
 
   const value = {
     // State

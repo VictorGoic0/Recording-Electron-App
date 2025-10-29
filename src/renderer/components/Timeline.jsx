@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./Timeline.css";
 import { useTimeline } from "../context/TimelineContext";
 
@@ -111,9 +111,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
 
   // Calculate pixel scale for time-to-pixel conversion
   // scale = pixels per second at current zoom
-  const scale = useMemo(() => {
-    return (timelineWidth / 60) * zoom;
-  }, [zoom, timelineWidth]);
+  const scale = (timelineWidth / 60) * zoom;
 
   // Update timeline width on resize
   useEffect(() => {
@@ -129,57 +127,53 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   }, []);
 
   // Calculate maximum timeline duration based on clips
-  const maxTimelineDuration = useMemo(() => {
-    let maxDuration = 60; // Default minimum 60 seconds
-    tracks.forEach((track) => {
-      track.clips.forEach((clip) => {
-        const clipEnd = clip.position + (clip.trimEnd || clip.duration);
-        if (clipEnd > maxDuration) {
-          maxDuration = clipEnd;
-        }
-      });
+  let maxTimelineDuration = 60; // Default minimum 60 seconds
+  tracks.forEach((track) => {
+    track.clips.forEach((clip) => {
+      const clipEnd = clip.position + (clip.trimEnd || clip.duration);
+      if (clipEnd > maxTimelineDuration) {
+        maxTimelineDuration = clipEnd;
+      }
     });
-    // Round up to nearest 5 seconds for cleaner display
-    return Math.ceil(maxDuration / 5) * 5;
-  }, [tracks]);
+  });
+  // Round up to nearest 5 seconds for cleaner display
+  maxTimelineDuration = Math.ceil(maxTimelineDuration / 5) * 5;
 
   // Generate time markers based on zoom level
-  const timeMarkers = useMemo(() => {
-    const markers = [];
-    const maxSeconds = maxTimelineDuration;
-    let interval;
-    let minorTickInterval;
+  const markers = [];
+  const maxSeconds = maxTimelineDuration;
+  let interval;
+  let minorTickInterval;
 
-    // Determine interval based on zoom
-    if (zoom >= 8) {
-      interval = 1; // Every second
-      minorTickInterval = 0.5;
-    } else if (zoom >= 5) {
-      interval = 2; // Every 2 seconds
-      minorTickInterval = 1;
-    } else if (zoom >= 3) {
-      interval = 5; // Every 5 seconds
-      minorTickInterval = 2.5;
-    } else if (zoom >= 2) {
-      interval = 10; // Every 10 seconds
-      minorTickInterval = 5;
-    } else {
-      interval = 15; // Every 15 seconds
-      minorTickInterval = 5;
-    }
+  // Determine interval based on zoom
+  if (zoom >= 8) {
+    interval = 1; // Every second
+    minorTickInterval = 0.5;
+  } else if (zoom >= 5) {
+    interval = 2; // Every 2 seconds
+    minorTickInterval = 1;
+  } else if (zoom >= 3) {
+    interval = 5; // Every 5 seconds
+    minorTickInterval = 2.5;
+  } else if (zoom >= 2) {
+    interval = 10; // Every 10 seconds
+    minorTickInterval = 5;
+  } else {
+    interval = 15; // Every 15 seconds
+    minorTickInterval = 5;
+  }
 
-    for (let time = 0; time <= maxSeconds; time += minorTickInterval) {
-      const isMajor = time % interval === 0;
-      markers.push({
-        time,
-        isMajor,
-        seconds: time % 60,
-        minutes: Math.floor(time / 60),
-      });
-    }
+  for (let time = 0; time <= maxSeconds; time += minorTickInterval) {
+    const isMajor = time % interval === 0;
+    markers.push({
+      time,
+      isMajor,
+      seconds: time % 60,
+      minutes: Math.floor(time / 60),
+    });
+  }
 
-    return markers;
-  }, [zoom, maxTimelineDuration]);
+  const timeMarkers = markers;
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -190,7 +184,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     return `${secs}s`;
   };
 
-  const updatePlayheadPosition = useCallback((clientX) => {
+  const updatePlayheadPosition = (clientX) => {
     if (!timelineContentRef.current || !onPlayheadChange) return;
     
     const rect = timelineContentRef.current.getBoundingClientRect();
@@ -200,13 +194,13 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     // Calculate time in seconds based on actual timeline duration
     const time = percentage * maxTimelineDuration;
     onPlayheadChange(time / maxTimelineDuration); // Normalized to 0-1
-  }, [onPlayheadChange, maxTimelineDuration]);
+  };
 
-  const handlePlayheadMouseDown = useCallback((e) => {
+  const handlePlayheadMouseDown = (e) => {
     e.preventDefault();
     setIsDragging(true);
     updatePlayheadPosition(e.clientX);
-  }, [updatePlayheadPosition]);
+  };
 
   useEffect(() => {
     if (!isDragging) return;
@@ -226,22 +220,22 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, updatePlayheadPosition]);
+  }, [isDragging]);
 
-  const handleTrackDragOver = useCallback((e, trackId) => {
+  const handleTrackDragOver = (e, trackId) => {
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
     setDraggedOverTrack(trackId);
-  }, []);
+  };
 
-  const handleTrackDragLeave = useCallback((e) => {
+  const handleTrackDragLeave = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDraggedOverTrack(null);
-  }, []);
+  };
 
-  const handleTrackDrop = useCallback((e, trackId) => {
+  const handleTrackDrop = (e, trackId) => {
     e.preventDefault();
     e.stopPropagation();
     setDraggedOverTrack(null);
@@ -262,7 +256,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     } catch (error) {
       console.error("Failed to parse dropped clip data:", error);
     }
-  }, [addClipToTimeline, maxTimelineDuration]);
+  };
 
   return (
     <div className="timeline-component">
