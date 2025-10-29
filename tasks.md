@@ -245,7 +245,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Update player when different clip selected
   - Handle video load errors
 
-- [ ] 3. Add playback controls
+- [x] 3. Add playback controls
 
   - Play/Pause button (or spacebar)
   - Visual play/pause icon

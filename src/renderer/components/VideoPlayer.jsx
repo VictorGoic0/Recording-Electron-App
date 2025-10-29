@@ -94,6 +94,35 @@ function VideoPlayer({ selectedClip }) {
     }
   }, []);
 
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only handle keyboard shortcuts if a video is selected
+      if (!selectedClip) return;
+
+      // Ignore if user is typing in an input field
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
+        return;
+      }
+
+      switch (e.key) {
+        case " ": // Spacebar
+        case "k": // K is common for play/pause in video players
+          e.preventDefault();
+          togglePlayPause();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedClip, isPlaying]); // Re-attach when selectedClip or isPlaying changes
+
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
