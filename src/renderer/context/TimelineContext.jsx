@@ -15,6 +15,7 @@ export const TimelineProvider = ({ children }) => {
   const [playhead, setPlayhead] = useState(0);
   const [duration, setDuration] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [selectedTimelineClipId, setSelectedTimelineClipId] = useState(null);
   
   // Track structure: { id, name, clips: [] }
   const [tracks, setTracks] = useState([
@@ -109,12 +110,27 @@ export const TimelineProvider = ({ children }) => {
     setPlayhead(newPlayhead);
   };
 
+  const selectTimelineClip = (clipId) => {
+    setSelectedTimelineClipId(clipId);
+  };
+
+  const getSelectedTimelineClip = () => {
+    if (!selectedTimelineClipId) return null;
+    for (const track of tracks) {
+      const clip = track.clips.find((c) => c.id === selectedTimelineClipId);
+      if (clip) return clip;
+    }
+    return null;
+  };
+
   const value = {
     // State
     playhead,
     duration,
     zoom,
     tracks,
+    selectedTimelineClipId,
+    selectedTimelineClip: getSelectedTimelineClip(),
     
     // Actions
     setPlayhead: updatePlayhead,
@@ -124,6 +140,7 @@ export const TimelineProvider = ({ children }) => {
     removeClipFromTimeline,
     updateClipPosition,
     updateClipTrim,
+    selectTimelineClip,
   };
 
   return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>;

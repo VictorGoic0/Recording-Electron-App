@@ -7,9 +7,11 @@ import { useTimeline } from "../context/TimelineContext";
  * Individual clip on the timeline with left/right trim handles
  */
 function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
-  const { updateClipTrim, updateClipPosition } = useTimeline();
+  const { updateClipTrim, updateClipPosition, selectTimelineClip, selectedTimelineClipId } = useTimeline();
   const [isTrimming, setIsTrimming] = useState(null); // 'left' or 'right'
   const [trimStartTime, setTrimStartTime] = useState(null);
+
+  const isSelected = selectedTimelineClipId === clip.id;
 
   const handleTrimMouseDown = (e, side) => {
     e.stopPropagation();
@@ -71,7 +73,13 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
   const displayWidth = effectiveDuration;
 
   const clipType = clip.type === 'overlay' ? 'overlay' : 'main';
-  const clipClassName = `timeline-clip clip-${clipType}`;
+  const clipClassName = `timeline-clip clip-${clipType} ${isSelected ? 'selected' : ''}`;
+
+  const handleClipClick = (e) => {
+    // Don't select if clicking on trim handles
+    if (e.target.classList.contains('trim-handle')) return;
+    selectTimelineClip(clip.id);
+  };
 
   return (
     <div
@@ -81,6 +89,7 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
         width: `${(displayWidth / maxDuration) * zoom * 100}%`,
       }}
       title={`${clip.filename} (${displayWidth.toFixed(1)}s)`}
+      onClick={handleClipClick}
     >
       {/* Left trim handle */}
       <div

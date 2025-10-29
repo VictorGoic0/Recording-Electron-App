@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 
 function App() {
   const { clips, selectedClipId, selectedClip, addMultipleMedia, selectClip, removeMedia } = useMedia();
-  const { playhead, setPlayhead, tracks, zoom } = useTimeline();
+  const { playhead, setPlayhead, tracks, zoom, selectedTimelineClip } = useTimeline();
   const [isProcessing, setIsProcessing] = useState(false);
   const [toasts, setToasts] = useState([]);
 
@@ -223,7 +223,8 @@ function App() {
 
           {/* Video Preview - Center Panel */}
           <VideoPlayer 
-            selectedClip={selectedClip} 
+            selectedMediaClip={selectedClip}
+            selectedTimelineClip={selectedTimelineClip}
             onShowToast={showToast}
             onCurrentTimeChange={setPlayhead}
             timelinePlayhead={playhead}

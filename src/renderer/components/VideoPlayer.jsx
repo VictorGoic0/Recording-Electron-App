@@ -9,7 +9,7 @@ import "./VideoPlayer.css";
  * to securely load local video files without triggering Electron's
  * file:// security restrictions.
  */
-function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelinePlayhead }) {
+function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onCurrentTimeChange, timelinePlayhead }) {
   const videoRef = useRef(null);
   const progressBarRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -19,6 +19,14 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState(null);
   const [isSeeking, setIsSeeking] = useState(false);
+
+  // Determine which clip to preview: timeline clip takes priority over media library clip
+  const selectedClip = selectedTimelineClip || selectedMediaClip;
+  const isTimelineClip = !!selectedTimelineClip;
+  
+  // Get trim bounds (only apply for timeline clips)
+  const trimStart = isTimelineClip ? (selectedTimelineClip.trimStart || 0) : 0;
+  const trimEnd = isTimelineClip ? (selectedTimelineClip.trimEnd || selectedClip?.duration || 0) : (selectedClip?.duration || 0);
 
   // Sync timeline playhead changes to video (when user drags playhead on timeline)
   useEffect(() => {
@@ -94,12 +102,22 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
 
       video.addEventListener("error", handleLoadError, { once: true });
 
+      // For timeline clips, seek to trimStart once loaded
+      const handleLoadedMetadata = () => {
+        if (isTimelineClip && trimStart > 0) {
+          video.currentTime = trimStart;
+        }
+      };
+      
+      video.addEventListener("loadedmetadata", handleLoadedMetadata, { once: true });
+
       // Cleanup
       return () => {
         video.removeEventListener("error", handleLoadError);
+        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       };
     }
-  }, [selectedClip]);
+  }, [selectedClip, isTimelineClip, trimStart]);
 
   // Load saved volume preference
   useEffect(() => {
@@ -226,6 +244,16 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const newTime = videoRef.current.currentTime;
+      
+      // For timeline clips, constrain playback to trimmed range
+      if (isTimelineClip && newTime >= trimEnd) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = trimEnd;
+        setIsPlaying(false);
+        setCurrentTime(trimEnd);
+        return;
+      }
+      
       setCurrentTime(newTime);
       
       // Notify parent of time change for timeline sync
@@ -312,7 +340,15 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
     if (!videoRef.current || !progressBarRef.current || !duration) return;
     const rect = progressBarRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const time = pos * duration;
+    
+    // For timeline clips, constrain seeking to trimmed range
+    let time;
+    if (isTimelineClip) {
+      time = trimStart + pos * (trimEnd - trimStart);
+    } else {
+      time = pos * duration;
+    }
+    
     videoRef.current.currentTime = time;
     setCurrentTime(time);
   };
@@ -325,7 +361,15 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
       if (!videoRef.current || !progressBarRef.current || !duration) return;
       const rect = progressBarRef.current.getBoundingClientRect();
       const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      const time = pos * duration;
+      
+      // For timeline clips, constrain seeking to trimmed range
+      let time;
+      if (isTimelineClip) {
+        time = trimStart + pos * (trimEnd - trimStart);
+      } else {
+        time = pos * duration;
+      }
+      
       videoRef.current.currentTime = time;
       setCurrentTime(time);
     };
@@ -341,7 +385,7 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isSeeking, duration]);
+  }, [isSeeking, duration, isTimelineClip, trimStart, trimEnd]);
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return "0:00";
@@ -350,7 +394,10 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // Calculate display values based on whether we're viewing a timeline clip or media library clip
+  const displayDuration = isTimelineClip ? (trimEnd - trimStart) : duration;
+  const displayCurrentTime = isTimelineClip ? Math.max(0, currentTime - trimStart) : currentTime;
+  const progress = displayDuration > 0 ? (displayCurrentTime / displayDuration) * 100 : 0;
 
   return (
     <section className="video-preview">
@@ -397,7 +444,7 @@ function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelineP
               </button>
 
               <div className="time-display">
-                {formatTime(currentTime)} / {formatTime(duration)}
+                {formatTime(displayCurrentTime)} / {formatTime(displayDuration)}
               </div>
 
               <div
