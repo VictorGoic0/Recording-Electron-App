@@ -15,7 +15,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "electron": "latest",
     "electron-context-menu": "^4.1.1",
     "fluent-ffmpeg": "^2.1.3",
     "react": "^18.2.0",
@@ -26,6 +25,7 @@
     "@vitejs/plugin-react": "^5.1.0",
     "concurrently": "^8.2.2",
     "cross-env": "^10.1.0",
+    "electron": "latest",
     "electron-builder": "latest",
     "vite": "^7.1.12"
   },
@@ -34,7 +34,7 @@
     "productName": "ClipCreate",
     "files": [
       "src/**/*",
-      "dist/**/*",
+      "dist-renderer/**/*",
       "package.json"
     ],
     "extraResources": [
@@ -47,7 +47,8 @@
       }
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "signAndEditExecutable": false
     },
     "mac": {
       "target": "dmg",

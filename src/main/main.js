@@ -61,7 +61,11 @@ function createWindow() {
     mainWindow.loadURL("http://localhost:3000");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../dist-renderer/index.html"));
+    // In production, the app structure is: app.asar/dist-renderer/index.html
+    // __dirname in packaged app points to: app.asar/src/main
+    // So we need to go up two levels and then into dist-renderer
+    const indexPath = path.join(__dirname, "../../dist-renderer/index.html");
+    mainWindow.loadFile(indexPath);
   }
 
   mainWindow.on("closed", function () {

@@ -18,6 +18,7 @@
 # production
 /build
 /dist
+/dist-renderer
 
 # misc
 .DS_Store
