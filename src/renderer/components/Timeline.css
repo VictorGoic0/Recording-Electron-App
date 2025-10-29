@@ -11,7 +11,8 @@
   display: flex;
   flex-direction: column;
   background: #1a1a1a;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   position: relative;
   min-height: 0;
 }
@@ -21,8 +22,8 @@
   height: 40px;
   background: #252525;
   border-bottom: 1px solid var(--border-color);
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: visible;
+  flex-shrink: 0;
 }
 
 .time-ruler-container {
@@ -63,9 +64,9 @@
 /* Tracks Container */
 .tracks-container {
   flex: 1;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-behavior: smooth;
+  overflow: visible;
+  position: relative;
+  min-height: 0;
 }
 
 /* Track Styles */

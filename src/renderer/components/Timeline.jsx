@@ -6,8 +6,8 @@ import { useTimeline } from "../context/TimelineContext";
  * Clip Component with Trim Handles
  * Individual clip on the timeline with left/right trim handles
  */
-function TimelineClip({ clip, zoom, scale }) {
-  const { updateClipTrim } = useTimeline();
+function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
+  const { updateClipTrim, updateClipPosition } = useTimeline();
   const [isTrimming, setIsTrimming] = useState(null); // 'left' or 'right'
   const [trimStartTime, setTrimStartTime] = useState(null);
 
@@ -23,17 +23,30 @@ function TimelineClip({ clip, zoom, scale }) {
 
     const handleMouseMove = (e) => {
       if (!trimStartTime) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
 
       const deltaX = e.clientX - trimStartTime;
-      // Calculate time delta: pixels to seconds
-      // Scale represents pixels per 60 seconds at current zoom
-      const secondsDelta = (deltaX / scale) / 60;
+      // Convert pixel delta to time delta (seconds)
+      // scale = pixels per second at current zoom
+      const secondsDelta = deltaX / scale;
+
+      // Use current clip state (passed as dependency)
+      const currentTrimStart = clip.trimStart || 0;
+      const currentTrimEnd = clip.trimEnd || clip.duration;
+      const currentPosition = clip.position;
+      const currentDuration = clip.duration;
 
       if (isTrimming === 'left') {
-        const newTrimStart = Math.max(0, Math.min(clip.trimEnd, clip.trimStart + secondsDelta));
+        // Trimming the start: increase trimStart, and shift the clip to the right
+        const newTrimStart = Math.max(0, Math.min(currentTrimEnd, currentTrimStart + secondsDelta));
+        const trimDelta = newTrimStart - currentTrimStart;
         updateClipTrim(clip.id, clip.track, newTrimStart, null);
+        updateClipPosition(clip.id, clip.track, currentPosition + trimDelta);
       } else if (isTrimming === 'right') {
-        const newTrimEnd = Math.min(clip.duration, Math.max(clip.trimStart, clip.trimEnd + secondsDelta));
+        // Trimming the end: decrease trimEnd
+        const newTrimEnd = Math.min(currentDuration, Math.max(currentTrimStart, currentTrimEnd + secondsDelta));
         updateClipTrim(clip.id, clip.track, null, newTrimEnd);
       }
 
@@ -52,7 +65,7 @@ function TimelineClip({ clip, zoom, scale }) {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isTrimming, trimStartTime, clip, scale, updateClipTrim]);
+  }, [isTrimming, trimStartTime, clip, scale, updateClipTrim, updateClipPosition]);
 
   const effectiveDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
   const displayWidth = effectiveDuration;
@@ -64,10 +77,10 @@ function TimelineClip({ clip, zoom, scale }) {
     <div
       className={clipClassName}
       style={{
-        left: `${((clip.position + (clip.trimStart || 0)) / 60) * zoom * 100}%`,
-        width: `${(displayWidth / 60) * zoom * 100}%`,
+        left: `${(clip.position / maxDuration) * zoom * 100}%`,
+        width: `${(displayWidth / maxDuration) * zoom * 100}%`,
       }}
-      title={clip.filename}
+      title={`${clip.filename} (${displayWidth.toFixed(1)}s)`}
     >
       {/* Left trim handle */}
       <div
@@ -97,8 +110,9 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   const { tracks, addClipToTimeline } = useTimeline();
 
   // Calculate pixel scale for time-to-pixel conversion
+  // scale = pixels per second at current zoom
   const scale = useMemo(() => {
-    return timelineWidth / (60 * zoom);
+    return (timelineWidth / 60) * zoom;
   }, [zoom, timelineWidth]);
 
   // Update timeline width on resize
@@ -114,10 +128,25 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
+  // Calculate maximum timeline duration based on clips
+  const maxTimelineDuration = useMemo(() => {
+    let maxDuration = 60; // Default minimum 60 seconds
+    tracks.forEach((track) => {
+      track.clips.forEach((clip) => {
+        const clipEnd = clip.position + (clip.trimEnd || clip.duration);
+        if (clipEnd > maxDuration) {
+          maxDuration = clipEnd;
+        }
+      });
+    });
+    // Round up to nearest 5 seconds for cleaner display
+    return Math.ceil(maxDuration / 5) * 5;
+  }, [tracks]);
+
   // Generate time markers based on zoom level
   const timeMarkers = useMemo(() => {
     const markers = [];
-    const maxSeconds = 60; // Show up to 60 seconds
+    const maxSeconds = maxTimelineDuration;
     let interval;
     let minorTickInterval;
 
@@ -150,7 +179,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     }
 
     return markers;
-  }, [zoom]);
+  }, [zoom, maxTimelineDuration]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -168,10 +197,10 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     const relativeX = clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
     
-    // Calculate time in seconds (assuming max 60 seconds for now)
-    const time = percentage * 60;
-    onPlayheadChange(time / 60); // Normalized to 0-1
-  }, [onPlayheadChange]);
+    // Calculate time in seconds based on actual timeline duration
+    const time = percentage * maxTimelineDuration;
+    onPlayheadChange(time / maxTimelineDuration); // Normalized to 0-1
+  }, [onPlayheadChange, maxTimelineDuration]);
 
   const handlePlayheadMouseDown = useCallback((e) => {
     e.preventDefault();
@@ -227,13 +256,13 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       const rect = e.currentTarget.getBoundingClientRect();
       const relativeX = e.clientX - rect.left;
       const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
-      const position = percentage * 60; // Assuming 60 seconds max for now
+      const position = percentage * maxTimelineDuration;
 
       addClipToTimeline(clip, trackId, position);
     } catch (error) {
       console.error("Failed to parse dropped clip data:", error);
     }
-  }, [addClipToTimeline]);
+  }, [addClipToTimeline, maxTimelineDuration]);
 
   return (
     <div className="timeline-component">
@@ -263,13 +292,13 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       <div className="timeline-content" ref={timelineContentRef}>
         {/* Time Ruler */}
         <div className="time-ruler">
-          <div className="time-ruler-container" style={{ minWidth: `${60 * zoom * 10}px` }}>
+          <div className="time-ruler-container" style={{ minWidth: `${maxTimelineDuration * zoom * 10}px` }}>
             {timeMarkers.map((marker, index) => (
               <div
                 key={index}
                 className={`time-tick ${marker.isMajor ? "time-tick-major" : "time-tick-minor"}`}
                 style={{
-                  left: `${(marker.time / 60) * zoom * 100}%`,
+                  left: `${(marker.time / maxTimelineDuration) * zoom * 100}%`,
                 }}
               >
                 {marker.isMajor && (
@@ -287,7 +316,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
         </div>
 
         {/* Tracks */}
-        <div className="tracks-container" style={{ minWidth: `${60 * zoom * 10}px` }}>
+        <div className="tracks-container" style={{ minWidth: `${maxTimelineDuration * zoom * 10}px` }}>
           <div className="track track-main">
             <div className="track-label">
               <span>Main</span>
@@ -300,7 +329,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
             >
               {/* Render clips for Main track */}
               {tracks.find((t) => t.id === "main")?.clips.map((clip) => (
-                <TimelineClip key={clip.id} clip={clip} zoom={zoom} scale={scale} />
+                <TimelineClip key={clip.id} clip={clip} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
               ))}
               <div 
                 className="playhead-line" 
@@ -322,7 +351,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
             >
               {/* Render clips for Overlay track */}
               {tracks.find((t) => t.id === "overlay")?.clips.map((clip) => (
-                <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} />
+                <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
               ))}
               <div 
                 className="playhead-line" 

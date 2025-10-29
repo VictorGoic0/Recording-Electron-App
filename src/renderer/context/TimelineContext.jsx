@@ -94,7 +94,7 @@ export const TimelineProvider = ({ children }) => {
                 clip.id === clipId
                   ? {
                       ...clip,
-                      trimStart: newTrimStart !== null ? Math.max(0, Math.min(newTrimStart, clip.endTime)) : clip.trimStart,
+                      trimStart: newTrimStart !== null ? Math.max(0, Math.min(newTrimStart, clip.trimEnd)) : clip.trimStart,
                       trimEnd: newTrimEnd !== null ? Math.min(clip.duration, Math.max(clip.trimStart, newTrimEnd)) : clip.trimEnd,
                     }
                   : clip
