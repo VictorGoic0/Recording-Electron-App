@@ -9,7 +9,7 @@ import { useTimeline } from "../context/TimelineContext";
 function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
   const { updateClipTrim, updateClipPosition, selectTimelineClip, selectedTimelineClipId } = useTimeline();
   const [isTrimming, setIsTrimming] = useState(null); // 'left' or 'right'
-  const [trimStartTime, setTrimStartTime] = useState(null);
+  const dragStartRef = useRef(null);
 
   const isSelected = selectedTimelineClipId === clip.id;
 
@@ -17,47 +17,44 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
     e.stopPropagation();
     e.preventDefault();
     setIsTrimming(side);
-    setTrimStartTime(e.clientX);
+    
+    // Store initial state for smooth dragging
+    dragStartRef.current = {
+      mouseX: e.clientX,
+      trimStart: clip.trimStart || 0,
+      trimEnd: clip.trimEnd || clip.duration,
+      position: clip.position,
+      duration: clip.duration,
+    };
   };
 
   useEffect(() => {
-    if (!isTrimming) return;
+    if (!isTrimming || !dragStartRef.current) return;
 
     const handleMouseMove = (e) => {
-      if (!trimStartTime) return;
-      
       e.preventDefault();
       e.stopPropagation();
 
-      const deltaX = e.clientX - trimStartTime;
-      // Convert pixel delta to time delta (seconds)
-      // scale = pixels per second at current zoom
+      const initial = dragStartRef.current;
+      const deltaX = e.clientX - initial.mouseX;
       const secondsDelta = deltaX / scale;
 
-      // Use current clip state (passed as dependency)
-      const currentTrimStart = clip.trimStart || 0;
-      const currentTrimEnd = clip.trimEnd || clip.duration;
-      const currentPosition = clip.position;
-      const currentDuration = clip.duration;
-
       if (isTrimming === 'left') {
-        // Trimming the start: increase trimStart, and shift the clip to the right
-        const newTrimStart = Math.max(0, Math.min(currentTrimEnd, currentTrimStart + secondsDelta));
-        const trimDelta = newTrimStart - currentTrimStart;
+        // Trim from start: calculate new trim start from INITIAL values
+        const newTrimStart = Math.max(0, Math.min(initial.trimEnd, initial.trimStart + secondsDelta));
+        const trimDelta = newTrimStart - initial.trimStart;
         updateClipTrim(clip.id, clip.track, newTrimStart, null);
-        updateClipPosition(clip.id, clip.track, currentPosition + trimDelta);
+        updateClipPosition(clip.id, clip.track, initial.position + trimDelta);
       } else if (isTrimming === 'right') {
-        // Trimming the end: decrease trimEnd
-        const newTrimEnd = Math.min(currentDuration, Math.max(currentTrimStart, currentTrimEnd + secondsDelta));
+        // Trim from end: calculate new trim end from INITIAL values
+        const newTrimEnd = Math.min(initial.duration, Math.max(initial.trimStart, initial.trimEnd + secondsDelta));
         updateClipTrim(clip.id, clip.track, null, newTrimEnd);
       }
-
-      setTrimStartTime(e.clientX);
     };
 
     const handleMouseUp = () => {
       setIsTrimming(null);
-      setTrimStartTime(null);
+      dragStartRef.current = null;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -67,7 +64,7 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isTrimming, trimStartTime, clip, scale, updateClipTrim, updateClipPosition]);
+  }, [isTrimming, clip.id, clip.track, scale, updateClipTrim, updateClipPosition]);
 
   const effectiveDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
   const displayWidth = effectiveDuration;
@@ -78,6 +75,8 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
   const handleClipClick = (e) => {
     // Don't select if clicking on trim handles
     if (e.target.classList.contains('trim-handle')) return;
+    e.preventDefault();
+    e.stopPropagation();
     selectTimelineClip(clip.id);
   };
 
@@ -256,10 +255,19 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       const clip = JSON.parse(clipData);
       
       // Calculate drop position based on mouse X
-      const rect = e.currentTarget.getBoundingClientRect();
-      const relativeX = e.clientX - rect.left;
-      const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
-      const position = percentage * maxTimelineDuration;
+      // Need to account for the scrollable container and actual timeline width
+      const trackRect = e.currentTarget.getBoundingClientRect();
+      const scrollableContainer = timelineContentRef.current;
+      const scrollLeft = scrollableContainer ? scrollableContainer.scrollLeft : 0;
+      
+      // Get mouse position relative to track, accounting for scroll
+      const relativeX = e.clientX - trackRect.left + scrollLeft;
+      
+      // Calculate actual timeline width (not viewport width)
+      const actualTimelineWidth = maxTimelineDuration * zoom * 10;
+      
+      // Convert pixel position to time
+      const position = Math.max(0, Math.min(maxTimelineDuration, (relativeX / actualTimelineWidth) * maxTimelineDuration));
 
       addClipToTimeline(clip, trackId, position);
     } catch (error) {

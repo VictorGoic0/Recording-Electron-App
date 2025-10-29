@@ -38,7 +38,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
     }
   }, [timelinePlayhead, duration]);
 
-  // Reset player and load new source when clip changes
+  // Reset player and load new source when clip file changes (NOT when trim changes)
   useEffect(() => {
     if (!selectedClip) {
       // No clip selected - reset everything
@@ -117,7 +117,25 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
         video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       };
     }
-  }, [selectedClip, isTimelineClip, trimStart]);
+  }, [selectedClip?.filePath, selectedClip?.id]);
+
+  // Handle trim boundary changes without reloading video
+  useEffect(() => {
+    if (!videoRef.current || !isTimelineClip) return;
+
+    const video = videoRef.current;
+    const currentTime = video.currentTime;
+
+    // If current playback position is now outside trim bounds, adjust it
+    if (currentTime < trimStart) {
+      // Current position is before new trim start - seek to trim start
+      video.currentTime = trimStart;
+    } else if (currentTime > trimEnd) {
+      // Current position is after new trim end - seek to trim start
+      video.currentTime = trimStart;
+    }
+    // Otherwise, keep playing at current position (within bounds)
+  }, [isTimelineClip, trimStart, trimEnd]);
 
   // Load saved volume preference
   useEffect(() => {
@@ -336,6 +354,8 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
   };
 
   const handleProgressBarMouseDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsSeeking(true);
     if (!videoRef.current || !progressBarRef.current || !duration) return;
     const rect = progressBarRef.current.getBoundingClientRect();
@@ -358,6 +378,8 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
     if (!isSeeking) return;
 
     const handleMouseMove = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (!videoRef.current || !progressBarRef.current || !duration) return;
       const rect = progressBarRef.current.getBoundingClientRect();
       const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));

@@ -398,21 +398,21 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 
 ### Subtasks
 
-- [ ] 1. Implement trim handles on timeline clips
+- [x] 1. Implement trim handles on timeline clips
 
   - Add left and right edge handles on clip blocks
   - Style handles (different color, drag cursor)
   - Make handles draggable
   - Constrain drag to clip boundaries
 
-- [ ] 2. Create trim logic
+- [x] 2. Create trim logic
 
   - When left handle dragged, update clip `trimStart`
   - When right handle dragged, update clip `trimEnd`
   - Update clip visual width during trim
   - Show trimmed duration while dragging
 
-- [ ] 3. Update clip metadata after trim
+- [x] 3. Update clip metadata after trim
 
   - Store trim points in clip state: `{ trimStart: 5, trimEnd: 25 }`
   - Calculate effective duration: `endTime - startTime`
