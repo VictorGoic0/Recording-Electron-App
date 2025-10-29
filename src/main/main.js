@@ -19,6 +19,10 @@ const {
   getCodecInfo,
   generateThumbnail,
 } = require("./services/ffmpegService");
+const {
+  exportSingleClip,
+  exportMultipleClips,
+} = require("./services/exportService");
 
 let mainWindow;
 
@@ -366,6 +370,98 @@ ipcMain.handle("reveal-in-explorer", async (event, filePath) => {
     };
   } catch (error) {
     console.error("[IPC] Failed to reveal file:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+// ============================================================================
+// Export Operations
+// ============================================================================
+
+/**
+ * Show save dialog for export
+ */
+ipcMain.handle("show-save-dialog", async (event) => {
+  try {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: "Export Video",
+      buttonLabel: "Export",
+      defaultPath: "edited-video.mp4",
+      filters: [
+        { name: "MP4 Video", extensions: ["mp4"] },
+        { name: "All Files", extensions: ["*"] },
+      ],
+    });
+
+    if (result.canceled) {
+      return {
+        success: false,
+        canceled: true,
+      };
+    }
+
+    return {
+      success: true,
+      filePath: result.filePath,
+    };
+  } catch (error) {
+    console.error("[IPC] Failed to show save dialog:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+/**
+ * Export timeline to video
+ */
+ipcMain.handle("export-timeline", async (event, exportData) => {
+  try {
+    console.log("[IPC] Export timeline called");
+    console.log("Export data:", JSON.stringify(exportData, null, 2));
+
+    const { clips, outputPath } = exportData;
+
+    if (!clips || clips.length === 0) {
+      throw new Error("No clips to export");
+    }
+
+    // Create progress callback that sends events to renderer
+    const sendProgress = (progress) => {
+      event.sender.send("export-progress", { progress });
+    };
+
+    if (clips.length === 1) {
+      // Single clip export
+      const clip = clips[0];
+      await exportSingleClip(
+        clip.filePath,
+        outputPath,
+        clip.trimStart || 0,
+        clip.trimEnd || clip.duration,
+        sendProgress
+      );
+    } else {
+      // Multiple clips export
+      const clipData = clips.map((clip) => ({
+        path: clip.filePath,
+        trimStart: clip.trimStart || 0,
+        trimEnd: clip.trimEnd || clip.duration,
+      }));
+
+      await exportMultipleClips(clipData, outputPath, sendProgress);
+    }
+
+    return {
+      success: true,
+      outputPath,
+    };
+  } catch (error) {
+    console.error("[IPC] Export failed:", error);
     return {
       success: false,
       error: error.message,

@@ -419,21 +419,21 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Update timeline duration if needed
   - Reflect trim in preview player
 
-- [ ] 4. Create export service module
+- [x] 4. Create export service module
 
   - New file: `/src/main/services/exportService.js`
   - Function to generate FFmpeg export command
   - Handle single clip export first
   - Build FFmpeg filter chain for trims
 
-- [ ] 5. Implement basic export flow
+- [x] 5. Implement basic export flow
 
   - Add "Export" button in UI
   - Open save dialog (choose destination)
   - Collect timeline data (clips, trim points, tracks)
   - Send to main process via IPC
 
-- [ ] 6. Build FFmpeg export command
+- [x] 6. Build FFmpeg export command
 
   - Input: timeline state with clips and trim points
   - For single clip: `ffmpeg -i input.mp4 -ss <start> -to <end> output.mp4`
@@ -441,35 +441,35 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Set output codec: H.264 video, AAC audio
   - Set resolution: 1080p (1920x1080) for MVP
 
-- [ ] 7. Execute export with progress tracking
+- [x] 7. Execute export with progress tracking
 
   - Run FFmpeg command asynchronously
   - Track progress via FFmpeg output parsing
   - Send progress updates to renderer via IPC
   - Handle export completion and errors
 
-- [ ] 8. Create export UI modal
+- [x] 8. Create export UI modal
 
   - Show during export: progress bar, percentage, time remaining
   - "Cancel" button to abort export
   - Display current processing step
   - Show success message on completion
 
-- [ ] 9. Handle export errors
+- [x] 9. Handle export errors
 
   - Catch FFmpeg errors
   - Show user-friendly error messages
   - Check disk space before starting (optional for MVP)
   - Log errors for debugging
 
-- [ ] 10. Test export with single clip
+- [x] 10. Test export with single clip
 
   - Import one video, trim it, export
   - Verify output plays correctly
   - Check file size is reasonable
   - Confirm audio is synchronized
 
-- [ ] 11. Test export with multiple clips
+- [x] 11. Test export with multiple clips
   - Arrange 2-3 clips on timeline
   - Export as single video
   - Verify seamless transitions (no gaps)

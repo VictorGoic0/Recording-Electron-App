@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./Timeline.css";
 import { useTimeline } from "../context/TimelineContext";
+import ExportModal from "./ExportModal";
 
 /**
  * Clip Component with Trim Handles
@@ -146,6 +147,11 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   const [timelineWidth, setTimelineWidth] = useState(600);
   const timelineContentRef = useRef(null);
   const { tracks, addClipToTimeline } = useTimeline();
+
+  // Export modal state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Calculate pixel scale for time-to-pixel conversion
   // scale = pixels per second at current zoom
@@ -305,11 +311,104 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     }
   };
 
+  const handleExport = async () => {
+    // Collect all clips from all tracks
+    const allClips = [];
+    tracks.forEach((track) => {
+      track.clips.forEach((clip) => {
+        allClips.push(clip);
+      });
+    });
+
+    // Sort clips by timeline position (left to right)
+    allClips.sort((a, b) => a.position - b.position);
+
+    if (allClips.length === 0) {
+      alert("No clips to export. Please add clips to the timeline.");
+      return;
+    }
+
+    // Check if electron API is available
+    if (!window.electron || !window.electron.export) {
+      console.error("Electron export API not available");
+      alert("Export functionality not ready. Please restart the app.");
+      return;
+    }
+
+    try {
+      // Show save dialog
+      const dialogResult = await window.electron.export.showSaveDialog();
+      
+      if (!dialogResult.success || dialogResult.canceled || !dialogResult.filePath) {
+        return; // User canceled or error
+      }
+
+      const outputPath = dialogResult.filePath;
+      
+      console.log("Exporting timeline:", {
+        clips: allClips.length,
+        outputPath,
+      });
+
+      // Show export modal and reset progress
+      setShowExportModal(true);
+      setExportProgress(0);
+      setIsExporting(true);
+
+      // Set up progress listener
+      window.electron.export.onProgress((progress) => {
+        console.log(`Export progress: ${progress}%`);
+        setExportProgress(progress);
+      });
+
+      // Execute export
+      const exportResult = await window.electron.export.exportTimeline({
+        clips: allClips,
+        outputPath,
+      });
+
+      // Clean up progress listener
+      window.electron.export.removeProgressListener();
+      setIsExporting(false);
+      setShowExportModal(false);
+
+      if (exportResult.success) {
+        alert(`Export completed! Saved to: ${exportResult.outputPath}`);
+      } else {
+        const errorMsg = exportResult.error || "Unknown error";
+        alert(`Export failed: ${errorMsg}`);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      setIsExporting(false);
+      setShowExportModal(false);
+      
+      // Provide user-friendly error message
+      let errorMessage = "Unknown error occurred during export";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`Export failed: ${errorMessage}`);
+    }
+  };
+
+  const handleCancelExport = () => {
+    // TODO: Implement cancel functionality (kill FFmpeg process)
+    setIsExporting(false);
+    setShowExportModal(false);
+    setExportProgress(0);
+    console.log("Export cancelled");
+  };
+
   return (
     <div className="timeline-component">
       <div className="panel-header">
         <h2>Timeline</h2>
         <div className="timeline-controls">
+          <button className="btn-icon" title="Export" onClick={handleExport}>
+            📤 Export
+          </button>
           <button className="btn-icon" title="Zoom In" onClick={() => setZoom(Math.min(zoom + 0.5, 10))}>
             +
           </button>
@@ -407,6 +506,13 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
           </div>
         </div>
       </div>
+
+      {/* Export Progress Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        progress={exportProgress}
+        onCancel={handleCancelExport}
+      />
     </div>
   );
 }

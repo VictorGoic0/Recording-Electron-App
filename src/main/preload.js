@@ -82,4 +82,38 @@ contextBridge.exposeInMainWorld("electron", {
     getResolution: (filePath) =>
       ipcRenderer.invoke("get-video-resolution", filePath),
   },
+
+  // Export operations
+  export: {
+    /**
+     * Show save dialog for export
+     * @returns {Promise<{success: boolean, filePath?: string, canceled?: boolean, error?: string}>}
+     */
+    showSaveDialog: () => ipcRenderer.invoke("show-save-dialog"),
+
+    /**
+     * Export timeline to video
+     * @param {object} exportData - Export data including clips and options
+     * @returns {Promise<{success: boolean, outputPath?: string, error?: string}>}
+     */
+    exportTimeline: (exportData) =>
+      ipcRenderer.invoke("export-timeline", exportData),
+
+    /**
+     * Listen for export progress updates
+     * @param {Function} callback - Callback function (progress: number)
+     */
+    onProgress: (callback) => {
+      ipcRenderer.on("export-progress", (event, data) =>
+        callback(data.progress)
+      );
+    },
+
+    /**
+     * Remove export progress listener
+     */
+    removeProgressListener: () => {
+      ipcRenderer.removeAllListeners("export-progress");
+    },
+  },
 });
