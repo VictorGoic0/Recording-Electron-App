@@ -22,6 +22,22 @@ const {
 
 let mainWindow;
 
+// Register the custom protocol as a standard scheme before app is ready
+// This is REQUIRED for protocol.handle() to work properly
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "local-video",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true, // Required for video/audio streaming
+      corsEnabled: false,
+      bypassCSP: false,
+    },
+  },
+]);
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -54,16 +70,25 @@ app.whenReady().then(async () => {
   // Using modern protocol.handle API (replaces deprecated registerFileProtocol)
   // Returns a Response object (fetch API standard) instead of using callbacks
   protocol.handle("local-video", (request) => {
-    // Extract the file path from the URL
-    // Format: local-video://filepath
-    const url = request.url.replace("local-video://", "");
-
-    // Decode URL-encoded characters (e.g., %20 -> space)
-    const filePath = decodeURIComponent(url);
-
-    console.log("[Protocol] Loading video file:", filePath);
-
     try {
+      // Parse the URL to extract the path from query parameter
+      // Format: local-video://load?path=C%3A%2FUsers%2Ffile.mp4
+      const requestUrl = new URL(request.url);
+
+      // Get the path from the query parameter
+      const filePath = requestUrl.searchParams.get("path");
+
+      if (!filePath) {
+        console.error(
+          "[Protocol] No path parameter provided in URL:",
+          request.url
+        );
+        return new Response("Missing path parameter", {
+          status: 400,
+          headers: { "content-type": "text/plain" },
+        });
+      }
+
       // Verify file exists before serving
       if (!fs.existsSync(filePath)) {
         console.error("[Protocol] File not found:", filePath);
@@ -73,15 +98,19 @@ app.whenReady().then(async () => {
         });
       }
 
-      // Read the file and return as response
-      // Using net.fetch with file:// URL to properly serve the file
+      // Convert to file:// URL for net.fetch
       const normalizedPath = filePath.replace(/\\/g, "/");
-      const fileUrl = normalizedPath.startsWith("/")
-        ? `file://${normalizedPath}`
-        : `file:///${normalizedPath}`;
+      const fileUrl = normalizedPath.match(/^[a-zA-Z]:/)
+        ? `file:///${normalizedPath}` // Windows: file:///C:/path
+        : `file://${normalizedPath}`; // Unix: file:///path
 
-      console.log("[Protocol] Serving file via:", fileUrl);
-      return net.fetch(fileUrl);
+      // Create a new request with the same headers to pass through range requests
+      const fetchRequest = new Request(fileUrl, {
+        headers: request.headers,
+      });
+
+      // Fetch and return the file
+      return net.fetch(fetchRequest);
     } catch (error) {
       console.error("[Protocol] Error loading file:", error);
       return new Response(`Error loading file: ${error.message}`, {

@@ -52,17 +52,14 @@ function VideoPlayer({ selectedClip }) {
       let videoSrc = selectedClip.filePath;
       
       // If already using a special protocol (blob, local-video), keep it as-is
-      if (!videoSrc.startsWith("local-video://") && !videoSrc.startsWith("blob:")) {
-        // Encode the file path to handle special characters (spaces, etc.)
-        // but keep forward slashes and colons unencoded for proper path handling
-        const encodedPath = encodeURI(videoSrc);
+      if (!videoSrc.startsWith("local-video:") && !videoSrc.startsWith("blob:")) {
+        // Normalize path: convert backslashes to forward slashes (Windows compatibility)
+        let normalizedPath = videoSrc.replace(/\\/g, "/");
         
-        // Use our custom protocol
-        videoSrc = `local-video://${encodedPath}`;
+        // Use custom protocol with the path as a query parameter to avoid URL parsing issues
+        // This prevents the browser from misinterpreting drive letters (C:) as hostname
+        videoSrc = `local-video://load?path=${encodeURIComponent(normalizedPath)}`;
       }
-
-      console.log(`Loading video: ${selectedClip.filename}`);
-      console.log(`Source URL: ${videoSrc}`);
 
       // Update video source
       video.src = videoSrc;
@@ -115,7 +112,34 @@ function VideoPlayer({ selectedClip }) {
 
   const handleError = (e) => {
     console.error("Video player error:", e);
-    setError("Failed to load video. File may be corrupted or in an unsupported format.");
+    
+    // Try to get more detailed error information from the video element
+    if (videoRef.current && videoRef.current.error) {
+      const mediaError = videoRef.current.error;
+      const errorCode = mediaError.code;
+      const errorMessage = mediaError.message || "Unknown error";
+      
+      // Map error codes to user-friendly messages
+      const errorMessages = {
+        1: "MEDIA_ERR_ABORTED: Video loading was aborted",
+        2: "MEDIA_ERR_NETWORK: Network error while loading video",
+        3: "MEDIA_ERR_DECODE: Video decoding failed (corrupted or unsupported format)",
+        4: "MEDIA_ERR_SRC_NOT_SUPPORTED: Video format not supported or source not found",
+      };
+      
+      const detailedError = errorMessages[errorCode] || `Unknown error (code: ${errorCode})`;
+      console.error("Media Error Details:", {
+        code: errorCode,
+        message: errorMessage,
+        description: detailedError,
+        src: videoRef.current.src,
+      });
+      
+      setError(`Failed to load video: ${detailedError}`);
+    } else {
+      setError("Failed to load video. File may be corrupted or in an unsupported format.");
+    }
+    
     setIsPlaying(false);
   };
 
