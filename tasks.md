@@ -266,7 +266,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Make progress bar draggable (scrub through video)
   - Update progress bar during playback
 
-- [ ] 6. Add volume control
+- [x] 6. Add volume control
 
   - Volume slider (0-100%)
   - Mute/unmute button

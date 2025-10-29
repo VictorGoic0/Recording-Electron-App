@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import "./VideoPlayer.css";
 
 /**
@@ -128,6 +128,7 @@ function VideoPlayer({ selectedClip }) {
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
+      console.log("[VideoPlayer] Metadata loaded, duration:", videoRef.current.duration);
     }
   };
 
@@ -142,7 +143,7 @@ function VideoPlayer({ selectedClip }) {
   };
 
   const handleError = (e) => {
-    console.error("Video player error:", e);
+    console.error("[VideoPlayer] Video player error:", e);
     
     // Try to get more detailed error information from the video element
     if (videoRef.current && videoRef.current.error) {
@@ -159,7 +160,7 @@ function VideoPlayer({ selectedClip }) {
       };
       
       const detailedError = errorMessages[errorCode] || `Unknown error (code: ${errorCode})`;
-      console.error("Media Error Details:", {
+      console.error("[VideoPlayer] Media Error Details:", {
         code: errorCode,
         message: errorMessage,
         description: detailedError,
@@ -194,21 +195,24 @@ function VideoPlayer({ selectedClip }) {
     setVolume(newVolume);
     if (videoRef.current) {
       videoRef.current.volume = newVolume;
+      if (isMuted) {
+        // Unmute when user adjusts volume
+        videoRef.current.muted = false;
+        setIsMuted(false);
+      }
     }
     localStorage.setItem("videoPlayerVolume", newVolume.toString());
-    if (newVolume > 0 && isMuted) {
-      setIsMuted(false);
-    }
   };
 
   const toggleMute = () => {
     if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
+      const newMutedState = !isMuted;
+      videoRef.current.muted = newMutedState;
+      setIsMuted(newMutedState);
     }
   };
 
-  const seekToPosition = (clientX) => {
+  const seekToPosition = useCallback((clientX) => {
     if (!videoRef.current || !progressBarRef.current || !duration) return;
 
     const rect = progressBarRef.current.getBoundingClientRect();
@@ -217,9 +221,10 @@ function VideoPlayer({ selectedClip }) {
 
     videoRef.current.currentTime = time;
     setCurrentTime(time);
-  };
+  }, [duration]);
 
   const handleProgressBarMouseDown = (e) => {
+    console.log("[VideoPlayer] Progress bar mouse down");
     setIsSeeking(true);
     seekToPosition(e.clientX);
   };
@@ -228,11 +233,14 @@ function VideoPlayer({ selectedClip }) {
   useEffect(() => {
     if (!isSeeking) return;
 
+    console.log("[VideoPlayer] Seeking started - attaching global listeners");
+
     const handleMouseMove = (e) => {
       seekToPosition(e.clientX);
     };
 
     const handleMouseUp = () => {
+      console.log("[VideoPlayer] Seeking ended");
       setIsSeeking(false);
     };
 
@@ -243,7 +251,7 @@ function VideoPlayer({ selectedClip }) {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isSeeking, duration]);
+  }, [isSeeking, duration, seekToPosition]);
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return "0:00";
@@ -304,7 +312,7 @@ function VideoPlayer({ selectedClip }) {
 
               <div
                 ref={progressBarRef}
-                className="progress-bar-container"
+                className={`progress-bar-container ${isSeeking ? "is-seeking" : ""}`}
                 onMouseDown={handleProgressBarMouseDown}
                 style={{ cursor: isSeeking ? "grabbing" : "pointer" }}
               >
@@ -328,16 +336,21 @@ function VideoPlayer({ selectedClip }) {
                 {isMuted || volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}
               </button>
 
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={handleVolumeChange}
-                className="volume-slider"
-                title="Volume"
-              />
+              <div className="volume-control-group">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume}
+                  onChange={handleVolumeChange}
+                  className="volume-slider"
+                  title={`Volume: ${Math.round(volume * 100)}%`}
+                />
+                <span className="volume-percentage">
+                  {isMuted ? "Muted" : `${Math.round(volume * 100)}%`}
+                </span>
+              </div>
             </div>
           </>
         )}

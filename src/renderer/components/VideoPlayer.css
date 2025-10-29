@@ -5,6 +5,8 @@
   height: 100%;
   background: var(--bg-secondary);
   flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 .preview-filename {
@@ -19,6 +21,7 @@
   flex-direction: column;
   background: var(--bg-preview);
   overflow: hidden;
+  min-height: 0;
 }
 
 /* Video Container */
@@ -29,6 +32,8 @@
   justify-content: center;
   background: #000;
   position: relative;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .video-element {
@@ -47,6 +52,8 @@
   padding: 12px 16px;
   background: var(--bg-tertiary);
   border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+  min-height: 60px;
 }
 
 .control-btn {
@@ -117,14 +124,16 @@
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 14px;
-  height: 14px;
-  background: var(--accent-primary);
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border: 2px solid #0078d4;
   border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 1;
+  transition: transform 0.2s ease;
   pointer-events: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  z-index: 10;
 }
 
 .progress-bar-container:hover .progress-bar {
@@ -132,16 +141,16 @@
 }
 
 .progress-bar-container:hover .progress-bar-fill {
-  background: var(--accent-hover);
+  background: #106ebe;
 }
 
 .progress-bar-container:hover .progress-bar-handle {
-  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.1);
 }
 
-.progress-bar-container:active .progress-bar-handle {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1.2);
+.progress-bar-container:active .progress-bar-handle,
+.progress-bar-container.is-seeking .progress-bar-handle {
+  transform: translate(-50%, -50%) scale(1.3);
 }
 
 /* Volume Controls */
@@ -149,15 +158,29 @@
   font-size: 18px;
 }
 
+.volume-control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .volume-slider {
   width: 80px;
   height: 6px;
   -webkit-appearance: none;
   appearance: none;
-  background: var(--bg-secondary);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 3px;
   outline: none;
   cursor: pointer;
+}
+
+.volume-percentage {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  min-width: 45px;
+  text-align: center;
 }
 
 .volume-slider::-webkit-slider-thumb {
@@ -242,6 +265,11 @@
 
   .volume-slider {
     width: 60px;
+  }
+
+  .volume-percentage {
+    font-size: 11px;
+    min-width: 40px;
   }
 }
 
