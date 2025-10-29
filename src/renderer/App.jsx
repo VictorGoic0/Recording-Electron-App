@@ -5,10 +5,12 @@ import VideoPlayer from "./components/VideoPlayer";
 import Timeline from "./components/Timeline";
 import Toast from "./components/Toast";
 import { useMedia } from "./context/MediaContext";
+import { useTimeline } from "./context/TimelineContext";
 import { v4 as uuidv4 } from "uuid";
 
 function App() {
   const { clips, selectedClipId, selectedClip, addMultipleMedia, selectClip, removeMedia } = useMedia();
+  const { playhead, setPlayhead, tracks, zoom } = useTimeline();
   const [isProcessing, setIsProcessing] = useState(false);
   const [toasts, setToasts] = useState([]);
 
@@ -225,7 +227,7 @@ function App() {
 
         {/* Timeline - Bottom Panel */}
         <section className="timeline">
-          <Timeline />
+          <Timeline playhead={playhead} onPlayheadChange={setPlayhead} />
         </section>
       </div>
 

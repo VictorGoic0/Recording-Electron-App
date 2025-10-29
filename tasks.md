@@ -319,28 +319,28 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Define fixed height (300-400px)
   - Style with dark background, grid lines
 
-- [ ] 2. Create time ruler
+- [x] 2. Create time ruler
 
   - Display time markers (0s, 10s, 20s, 30s, etc.)
   - Position at top of timeline
   - Show tick marks for precision
   - Update scale based on zoom level
 
-- [ ] 3. Create track system
+- [x] 3. Create track system
 
   - Track 1: Main video track
   - Track 2: Overlay/PiP track
   - Visual separation between tracks (borders/colors)
   - Label tracks ("Main", "Overlay")
 
-- [ ] 4. Implement playhead
+- [x] 4. Implement playhead
 
   - Vertical red line indicating current time
   - Position based on current time state
   - Draggable to scrub through timeline
   - Snaps to frame boundaries (optional)
 
-- [ ] 5. Create timeline state management
+- [x] 5. Create timeline state management
 
   - State structure: `{ tracks: [], playhead: 0, duration: 0, zoom: 1 }`
   - Track structure: `{ id, clips: [] }`

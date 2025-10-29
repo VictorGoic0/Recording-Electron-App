@@ -31,6 +31,35 @@
   min-width: 100%;
 }
 
+/* Time Ticks */
+.time-tick {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+
+.time-tick-major {
+  background: rgba(255, 255, 255, 0.4);
+  height: 100%;
+}
+
+.time-tick-minor {
+  background: rgba(255, 255, 255, 0.15);
+  height: 60%;
+  top: 40%;
+}
+
+.time-label {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: "Courier New", monospace;
+  white-space: nowrap;
+}
+
 /* Tracks Container */
 .tracks-container {
   flex: 1;
@@ -42,15 +71,32 @@
 .track {
   display: flex;
   min-height: 80px;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 2px solid #2a2a2a;
+  transition: background-color 0.2s ease;
 }
 
 .track-main {
   background: #1f1f1f;
+  border-left: 3px solid #0078d4;
+}
+
+.track-main .track-label {
+  border-left-color: #0078d4;
+  background: linear-gradient(135deg, #252525 0%, #2a2a2a 100%);
 }
 
 .track-overlay {
   background: #1e1e1e;
+  border-left: 3px solid #16c60c;
+}
+
+.track-overlay .track-label {
+  border-left-color: #16c60c;
+  background: linear-gradient(135deg, #252525 0%, #1f2a1f 100%);
+}
+
+.track:hover {
+  background-color: #252525;
 }
 
 .track-label {
@@ -60,16 +106,21 @@
   align-items: center;
   justify-content: center;
   background: #252525;
-  border-right: 1px solid var(--border-color);
+  border-right: 2px solid var(--border-color);
+  border-left: 2px solid transparent;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
 }
 
 .track-content {
   flex: 1;
   position: relative;
   min-height: 80px;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
   background-image: 
     repeating-linear-gradient(to right, transparent 0px, transparent 49px, rgba(255, 255, 255, 0.03) 49px, rgba(255, 255, 255, 0.03) 50px),
     repeating-linear-gradient(to bottom, transparent 0px, transparent 79px, rgba(255, 255, 255, 0.05) 79px, rgba(255, 255, 255, 0.05) 80px);
@@ -82,9 +133,20 @@
   bottom: 0;
   width: 2px;
   background: #e81123;
-  pointer-events: none;
   z-index: 10;
   box-shadow: 0 0 8px rgba(232, 17, 35, 0.6);
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.playhead-line:hover,
+.playhead-ruler:hover {
+  background: #ff4757;
+  width: 3px;
+}
+
+.playhead-ruler {
+  cursor: ew-resize;
 }
 
 /* Zoom Controls in Header */
