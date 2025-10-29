@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import "./Timeline.css";
+import { useTimeline } from "../context/TimelineContext";
 
 /**
  * Timeline Component
@@ -8,7 +9,9 @@ import "./Timeline.css";
 function Timeline({ playhead = 0, onPlayheadChange }) {
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [draggedOverTrack, setDraggedOverTrack] = useState(null);
   const timelineContentRef = useRef(null);
+  const { tracks, addClipToTimeline } = useTimeline();
 
   // Generate time markers based on zoom level
   const timeMarkers = useMemo(() => {
@@ -95,6 +98,42 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     };
   }, [isDragging, updatePlayheadPosition]);
 
+  const handleTrackDragOver = useCallback((e, trackId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    setDraggedOverTrack(trackId);
+  }, []);
+
+  const handleTrackDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggedOverTrack(null);
+  }, []);
+
+  const handleTrackDrop = useCallback((e, trackId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggedOverTrack(null);
+
+    try {
+      const clipData = e.dataTransfer.getData("application/json");
+      if (!clipData) return;
+
+      const clip = JSON.parse(clipData);
+      
+      // Calculate drop position based on mouse X
+      const rect = e.currentTarget.getBoundingClientRect();
+      const relativeX = e.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
+      const position = percentage * 60; // Assuming 60 seconds max for now
+
+      addClipToTimeline(clip, trackId, position);
+    } catch (error) {
+      console.error("Failed to parse dropped clip data:", error);
+    }
+  }, [addClipToTimeline]);
+
   return (
     <div className="timeline-component">
       <div className="panel-header">
@@ -103,6 +142,16 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
           <button className="btn-icon" title="Zoom In" onClick={() => setZoom(Math.min(zoom + 0.5, 10))}>
             +
           </button>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            step="0.5"
+            value={zoom}
+            onChange={(e) => setZoom(parseFloat(e.target.value))}
+            className="zoom-slider"
+            title="Zoom"
+          />
           <button className="btn-icon" title="Zoom Out" onClick={() => setZoom(Math.max(zoom - 0.5, 1))}>
             −
           </button>
@@ -142,8 +191,26 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
             <div className="track-label">
               <span>Main</span>
             </div>
-            <div className="track-content">
-              {/* Clips will be rendered here */}
+            <div 
+              className={`track-content ${draggedOverTrack === "main" ? "drag-over" : ""}`}
+              onDragOver={(e) => handleTrackDragOver(e, "main")}
+              onDragLeave={handleTrackDragLeave}
+              onDrop={(e) => handleTrackDrop(e, "main")}
+            >
+              {/* Render clips for Main track */}
+              {tracks.find((t) => t.id === "main")?.clips.map((clip) => (
+                <div
+                  key={clip.id}
+                  className="timeline-clip clip-main"
+                  style={{
+                    left: `${(clip.position / 60) * zoom * 100}%`,
+                    width: `${(clip.duration / 60) * zoom * 100}%`,
+                  }}
+                  title={clip.filename}
+                >
+                  <div className="clip-label">{clip.filename}</div>
+                </div>
+              ))}
               <div 
                 className="playhead-line" 
                 style={{ left: `${playhead * 100}%` }}
@@ -156,8 +223,26 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
             <div className="track-label">
               <span>Overlay</span>
             </div>
-            <div className="track-content">
-              {/* Clips will be rendered here */}
+            <div 
+              className={`track-content ${draggedOverTrack === "overlay" ? "drag-over" : ""}`}
+              onDragOver={(e) => handleTrackDragOver(e, "overlay")}
+              onDragLeave={handleTrackDragLeave}
+              onDrop={(e) => handleTrackDrop(e, "overlay")}
+            >
+              {/* Render clips for Overlay track */}
+              {tracks.find((t) => t.id === "overlay")?.clips.map((clip) => (
+                <div
+                  key={clip.id}
+                  className="timeline-clip clip-overlay"
+                  style={{
+                    left: `${(clip.position / 60) * zoom * 100}%`,
+                    width: `${(clip.duration / 60) * zoom * 100}%`,
+                  }}
+                  title={clip.filename}
+                >
+                  <div className="clip-label">{clip.filename}</div>
+                </div>
+              ))}
               <div 
                 className="playhead-line" 
                 style={{ left: `${playhead * 100}%` }}

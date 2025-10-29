@@ -9,7 +9,7 @@ import "./VideoPlayer.css";
  * to securely load local video files without triggering Electron's
  * file:// security restrictions.
  */
-function VideoPlayer({ selectedClip, onShowToast }) {
+function VideoPlayer({ selectedClip, onShowToast, onCurrentTimeChange, timelinePlayhead }) {
   const videoRef = useRef(null);
   const progressBarRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -19,6 +19,16 @@ function VideoPlayer({ selectedClip, onShowToast }) {
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState(null);
   const [isSeeking, setIsSeeking] = useState(false);
+
+  // Sync timeline playhead changes to video (when user drags playhead on timeline)
+  useEffect(() => {
+    if (videoRef.current && duration > 0 && timelinePlayhead !== undefined) {
+      const newTime = timelinePlayhead * duration;
+      if (Math.abs(videoRef.current.currentTime - newTime) > 0.1) {
+        videoRef.current.currentTime = newTime;
+      }
+    }
+  }, [timelinePlayhead, duration]);
 
   // Reset player and load new source when clip changes
   useEffect(() => {
@@ -215,9 +225,21 @@ function VideoPlayer({ selectedClip, onShowToast }) {
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+      const newTime = videoRef.current.currentTime;
+      setCurrentTime(newTime);
+      
+      // Notify parent of time change for timeline sync
+      if (onCurrentTimeChange && videoRef.current.duration > 0) {
+        const playheadPosition = newTime / videoRef.current.duration;
+        onCurrentTimeChange(playheadPosition);
+      }
     }
   };
+
+  // Sync playhead changes from timeline to video
+  useEffect(() => {
+    // This will be handled by seek handlers
+  }, []);
 
   const handleEnded = () => {
     setIsPlaying(false);

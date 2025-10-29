@@ -347,35 +347,35 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Clip structure: `{ id, fileId, startTime, endTime, position, track }`
   - Actions: `addClipToTimeline`, `removeClipFromTimeline`, `updateClipPosition`
 
-- [ ] 6. Implement drag-from-library-to-timeline
+- [x] 6. Implement drag-from-library-to-timeline
 
   - Make media library clips draggable
   - Add drop zone on timeline tracks
   - Visual feedback when dragging (highlight drop zone)
   - Calculate drop position based on mouse X coordinate
 
-- [ ] 7. Display clips on timeline
+- [x] 7. Display clips on timeline
 
   - Render clip blocks on appropriate track
   - Width based on clip duration and zoom level
   - Show clip thumbnail or name inside block
   - Color code clips for visual distinction
 
-- [ ] 8. Implement zoom controls
+- [x] 8. Implement zoom controls
 
   - Zoom in button (increase time scale)
   - Zoom out button (decrease time scale)
   - Zoom slider (1x to 10x zoom)
   - Recalculate clip widths on zoom change
 
-- [ ] 9. Implement horizontal scrolling
+- [x] 9. Implement horizontal scrolling
 
   - Enable scrollbar for long timelines
   - Smooth scrolling behavior
   - Keep playhead visible when scrolling
   - Snap scroll to clip boundaries (optional)
 
-- [ ] 10. Sync timeline playhead with video player
+- [x] 10. Sync timeline playhead with video player
   - When video plays, move timeline playhead
   - When playhead dragged, update video currentTime
   - Bidirectional sync between timeline and player

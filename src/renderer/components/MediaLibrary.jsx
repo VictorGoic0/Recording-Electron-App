@@ -212,6 +212,8 @@ function MediaLibrary({
  * Individual clip card showing thumbnail, filename, and metadata
  */
 function ClipCard({ clip, isSelected, onClick, onContextMenu }) {
+  const [isDragging, setIsDragging] = React.useState(false);
+
   const formatDuration = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -228,11 +230,24 @@ function ClipCard({ clip, isSelected, onClick, onContextMenu }) {
     }
   };
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("application/json", JSON.stringify(clip));
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div
-      className={`clip-card ${isSelected ? "selected" : ""}`}
+      className={`clip-card ${isSelected ? "selected" : ""} ${isDragging ? "dragging" : ""}`}
       onClick={onClick}
       onContextMenu={onContextMenu}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       title={clip.filename}
     >
       <div className="clip-thumbnail">

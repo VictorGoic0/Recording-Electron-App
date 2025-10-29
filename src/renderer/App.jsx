@@ -222,7 +222,12 @@ function App() {
           />
 
           {/* Video Preview - Center Panel */}
-          <VideoPlayer selectedClip={selectedClip} onShowToast={showToast} />
+          <VideoPlayer 
+            selectedClip={selectedClip} 
+            onShowToast={showToast}
+            onCurrentTimeChange={setPlayhead}
+            timelinePlayhead={playhead}
+          />
         </div>
 
         {/* Timeline - Bottom Panel */}
