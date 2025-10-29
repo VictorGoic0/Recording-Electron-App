@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./MediaLibrary.css";
+import ScreenSourcePicker from "./ScreenSourcePicker";
 
 /**
  * MediaLibrary Component
@@ -18,6 +19,7 @@ function MediaLibrary({
   const [isDragging, setIsDragging] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [isRecordDropdownOpen, setIsRecordDropdownOpen] = useState(false);
+  const [isScreenSourcePickerOpen, setIsScreenSourcePickerOpen] = useState(false);
 
   const handleImportClick = () => {
     if (onImport) {
@@ -32,8 +34,27 @@ function MediaLibrary({
 
   const handleRecordOptionSelect = (option) => {
     console.log("Record option selected:", option);
-    // TODO: Implement recording logic based on option (Screen, Webcam, Both)
     setIsRecordDropdownOpen(false);
+    
+    if (option === "screen") {
+      setIsScreenSourcePickerOpen(true);
+    } else if (option === "webcam") {
+      // TODO: Implement webcam recording
+      console.log("Webcam recording not yet implemented");
+    } else if (option === "both") {
+      // TODO: Implement both screen and webcam recording
+      console.log("Both screen and webcam recording not yet implemented");
+    }
+  };
+
+  const handleScreenSourceSelect = (source) => {
+    console.log("Screen source selected:", source);
+    setIsScreenSourcePickerOpen(false);
+    // TODO: Start recording with selected source
+  };
+
+  const handleScreenSourcePickerClose = () => {
+    setIsScreenSourcePickerOpen(false);
   };
 
   const handleClipClick = (clip) => {
@@ -268,6 +289,13 @@ function MediaLibrary({
           </div>
         )}
       </div>
+
+      {/* Screen Source Picker Modal */}
+      <ScreenSourcePicker
+        isOpen={isScreenSourcePickerOpen}
+        onSelect={handleScreenSourceSelect}
+        onClose={handleScreenSourcePickerClose}
+      />
     </aside>
   );
 }

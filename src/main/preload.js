@@ -116,4 +116,15 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeAllListeners("export-progress");
     },
   },
+
+  // Screen recording operations
+  recording: {
+    /**
+     * Get available desktop sources (screens and windows) for recording
+     * @param {object} options - Options for source types
+     * @returns {Promise<{success: boolean, sources?: Array, error?: string}>}
+     */
+    getDesktopSources: (options) =>
+      ipcRenderer.invoke("get-desktop-sources", options),
+  },
 });

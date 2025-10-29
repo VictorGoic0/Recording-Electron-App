@@ -493,13 +493,13 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 
 ### Subtasks
 
-- [ ] 1. Add "Record" button to UI
+- [x] 1. Add "Record" button to UI
 
   - Add to Media Library panel or toolbar
   - Dropdown menu: "Screen", "Webcam", "Both"
   - Style with record icon (red dot)
 
-- [ ] 2. Implement screen source selection (Electron)
+- [x] 2. Implement screen source selection (Electron)
 
   - Use `desktopCapturer.getSources()` to list screens and windows
   - Display source picker modal/dialog

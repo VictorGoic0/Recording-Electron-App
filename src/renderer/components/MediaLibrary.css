@@ -340,10 +340,12 @@
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  background: var(--bg-primary);
+  background-color: #1a1a1a;
+  background: #1a1a1a !important;
+  opacity: 1 !important;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-md);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
   min-width: 160px;
   padding: 4px 0;
   z-index: 1000;

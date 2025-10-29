@@ -6,6 +6,7 @@ const {
   shell,
   protocol,
   net,
+  desktopCapturer,
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -466,6 +467,69 @@ ipcMain.handle("export-timeline", async (event, exportData) => {
     };
   } catch (error) {
     console.error("[IPC] Export failed:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+// ============================================================================
+// Screen Recording Operations
+// ============================================================================
+
+/**
+ * Get available desktop sources (screens and windows) for recording
+ */
+ipcMain.handle("get-desktop-sources", async (event, options = {}) => {
+  try {
+    console.log("[IPC] Getting desktop sources");
+
+    const { types = ["screen", "window"] } = options;
+
+    // Get screens and windows separately to properly categorize them
+    const [screenSources, windowSources] = await Promise.all([
+      desktopCapturer.getSources({
+        types: ["screen"],
+        thumbnailSize: { width: 300, height: 200 },
+      }),
+      desktopCapturer.getSources({
+        types: ["window"],
+        thumbnailSize: { width: 300, height: 200 },
+      }),
+    ]);
+
+    // Format screen sources
+    const formattedScreens = screenSources.map((source) => ({
+      id: source.id,
+      name: source.name,
+      thumbnail: source.thumbnail.toDataURL(),
+      display_id: source.display_id,
+      type: "screen",
+    }));
+
+    // Format window sources
+    const formattedWindows = windowSources.map((source) => ({
+      id: source.id,
+      name: source.name,
+      thumbnail: source.thumbnail.toDataURL(),
+      display_id: source.display_id,
+      type: "window",
+    }));
+
+    // Combine both types
+    const formattedSources = [...formattedScreens, ...formattedWindows];
+
+    console.log(
+      `[IPC] Found ${formattedScreens.length} screens and ${formattedWindows.length} windows`
+    );
+
+    return {
+      success: true,
+      sources: formattedSources,
+    };
+  } catch (error) {
+    console.error("[IPC] Failed to get desktop sources:", error);
     return {
       success: false,
       error: error.message,
