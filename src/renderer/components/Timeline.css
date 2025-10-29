@@ -1,0 +1,104 @@
+/* Timeline Styles - Works with App.css timeline class */
+.timeline-component {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.timeline-component .timeline-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+/* Time Ruler */
+.time-ruler {
+  height: 40px;
+  background: #252525;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.time-ruler-container {
+  position: relative;
+  height: 100%;
+  min-width: 100%;
+}
+
+/* Tracks Container */
+.tracks-container {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Track Styles */
+.track {
+  display: flex;
+  min-height: 80px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.track-main {
+  background: #1f1f1f;
+}
+
+.track-overlay {
+  background: #1e1e1e;
+}
+
+.track-label {
+  width: 80px;
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #252525;
+  border-right: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.track-content {
+  flex: 1;
+  position: relative;
+  min-height: 80px;
+  background-image: 
+    repeating-linear-gradient(to right, transparent 0px, transparent 49px, rgba(255, 255, 255, 0.03) 49px, rgba(255, 255, 255, 0.03) 50px),
+    repeating-linear-gradient(to bottom, transparent 0px, transparent 79px, rgba(255, 255, 255, 0.05) 79px, rgba(255, 255, 255, 0.05) 80px);
+}
+
+/* Playhead Line */
+.playhead-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e81123;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(232, 17, 35, 0.6);
+}
+
+/* Zoom Controls in Header */
+.timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-indicator {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  min-width: 40px;
+  text-align: center;
+  font-family: "Courier New", monospace;
+}
+

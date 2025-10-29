@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 import MediaLibrary from "./components/MediaLibrary";
 import VideoPlayer from "./components/VideoPlayer";
+import Timeline from "./components/Timeline";
 import Toast from "./components/Toast";
 import { useMedia } from "./context/MediaContext";
 import { v4 as uuidv4 } from "uuid";
@@ -224,23 +225,7 @@ function App() {
 
         {/* Timeline - Bottom Panel */}
         <section className="timeline">
-          <div className="panel-header">
-            <h2>Timeline</h2>
-            <div className="timeline-controls">
-              <button className="btn-icon" title="Zoom In">+</button>
-              <button className="btn-icon" title="Zoom Out">−</button>
-              <button className="btn-secondary btn-small">Export</button>
-            </div>
-          </div>
-          <div className="timeline-content">
-            <div className="placeholder-content">
-              <div className="placeholder-icon">📊</div>
-              <p>Timeline is empty</p>
-              <p className="placeholder-hint">
-                Drag clips here to start editing
-              </p>
-            </div>
-          </div>
+          <Timeline />
         </section>
       </div>
 

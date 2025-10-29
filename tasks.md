@@ -312,7 +312,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 
 ### Subtasks
 
-- [ ] 1. Create Timeline component
+- [x] 1. Create Timeline component
 
   - New file: `/src/renderer/components/Timeline.jsx`
   - Set up horizontal scrollable container
