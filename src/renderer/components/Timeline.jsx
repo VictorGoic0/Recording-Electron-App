@@ -3,6 +3,88 @@ import "./Timeline.css";
 import { useTimeline } from "../context/TimelineContext";
 
 /**
+ * Clip Component with Trim Handles
+ * Individual clip on the timeline with left/right trim handles
+ */
+function TimelineClip({ clip, zoom, scale }) {
+  const { updateClipTrim } = useTimeline();
+  const [isTrimming, setIsTrimming] = useState(null); // 'left' or 'right'
+  const [trimStartTime, setTrimStartTime] = useState(null);
+
+  const handleTrimMouseDown = (e, side) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsTrimming(side);
+    setTrimStartTime(e.clientX);
+  };
+
+  useEffect(() => {
+    if (!isTrimming) return;
+
+    const handleMouseMove = (e) => {
+      if (!trimStartTime) return;
+
+      const deltaX = e.clientX - trimStartTime;
+      // Calculate time delta: pixels to seconds
+      // Scale represents pixels per 60 seconds at current zoom
+      const secondsDelta = (deltaX / scale) / 60;
+
+      if (isTrimming === 'left') {
+        const newTrimStart = Math.max(0, Math.min(clip.trimEnd, clip.trimStart + secondsDelta));
+        updateClipTrim(clip.id, clip.track, newTrimStart, null);
+      } else if (isTrimming === 'right') {
+        const newTrimEnd = Math.min(clip.duration, Math.max(clip.trimStart, clip.trimEnd + secondsDelta));
+        updateClipTrim(clip.id, clip.track, null, newTrimEnd);
+      }
+
+      setTrimStartTime(e.clientX);
+    };
+
+    const handleMouseUp = () => {
+      setIsTrimming(null);
+      setTrimStartTime(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isTrimming, trimStartTime, clip, scale, updateClipTrim]);
+
+  const effectiveDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
+  const displayWidth = effectiveDuration;
+
+  const clipType = clip.type === 'overlay' ? 'overlay' : 'main';
+  const clipClassName = `timeline-clip clip-${clipType}`;
+
+  return (
+    <div
+      className={clipClassName}
+      style={{
+        left: `${((clip.position + (clip.trimStart || 0)) / 60) * zoom * 100}%`,
+        width: `${(displayWidth / 60) * zoom * 100}%`,
+      }}
+      title={clip.filename}
+    >
+      {/* Left trim handle */}
+      <div
+        className="trim-handle trim-handle-left"
+        onMouseDown={(e) => handleTrimMouseDown(e, 'left')}
+      />
+      {/* Right trim handle */}
+      <div
+        className="trim-handle trim-handle-right"
+        onMouseDown={(e) => handleTrimMouseDown(e, 'right')}
+      />
+      <div className="clip-label">{clip.filename}</div>
+    </div>
+  );
+}
+
+/**
  * Timeline Component
  * Visual timeline with track layout and playhead
  */
@@ -10,8 +92,27 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedOverTrack, setDraggedOverTrack] = useState(null);
+  const [timelineWidth, setTimelineWidth] = useState(600);
   const timelineContentRef = useRef(null);
   const { tracks, addClipToTimeline } = useTimeline();
+
+  // Calculate pixel scale for time-to-pixel conversion
+  const scale = useMemo(() => {
+    return timelineWidth / (60 * zoom);
+  }, [zoom, timelineWidth]);
+
+  // Update timeline width on resize
+  useEffect(() => {
+    const updateWidth = () => {
+      if (timelineContentRef.current) {
+        const rect = timelineContentRef.current.getBoundingClientRect();
+        setTimelineWidth(rect.width);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   // Generate time markers based on zoom level
   const timeMarkers = useMemo(() => {
@@ -199,17 +300,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
             >
               {/* Render clips for Main track */}
               {tracks.find((t) => t.id === "main")?.clips.map((clip) => (
-                <div
-                  key={clip.id}
-                  className="timeline-clip clip-main"
-                  style={{
-                    left: `${(clip.position / 60) * zoom * 100}%`,
-                    width: `${(clip.duration / 60) * zoom * 100}%`,
-                  }}
-                  title={clip.filename}
-                >
-                  <div className="clip-label">{clip.filename}</div>
-                </div>
+                <TimelineClip key={clip.id} clip={clip} zoom={zoom} scale={scale} />
               ))}
               <div 
                 className="playhead-line" 
@@ -231,17 +322,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
             >
               {/* Render clips for Overlay track */}
               {tracks.find((t) => t.id === "overlay")?.clips.map((clip) => (
-                <div
-                  key={clip.id}
-                  className="timeline-clip clip-overlay"
-                  style={{
-                    left: `${(clip.position / 60) * zoom * 100}%`,
-                    width: `${(clip.duration / 60) * zoom * 100}%`,
-                  }}
-                  title={clip.filename}
-                >
-                  <div className="clip-label">{clip.filename}</div>
-                </div>
+                <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} />
               ))}
               <div 
                 className="playhead-line" 

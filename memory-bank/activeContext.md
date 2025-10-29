@@ -2,28 +2,39 @@
 
 ## Current Work Focus
 
-**Phase**: Project initialization (Day 1)
-**Date**: October 27, 2025
-**Current PR**: PR #1 - Project Setup & Foundation
+**Phase**: MVP Feature Development
+**Date**: Current
+**Current PR**: PR #6 in progress - Trim handles complete, Export next
 
 ## What I'm Working On Right Now
 
-Initializing the Electron + React project structure and setting up the development environment.
+Completed PR #5 (Basic Timeline UI) with all 10 subtasks. Now moving to PR #6 (Trim & Export) which is critical for MVP completion. The app has:
+
+- Full video import system
+- Media library with drag & drop
+- Video preview player with full controls
+- Timeline UI with tracks, playhead, zoom controls
+- Bidirectional playhead sync between timeline and video player
 
 ## Recent Changes
 
-- Created memory bank structure
-- Analyzed PRD and task breakdown
-- Identified 10 core PRs to implement
-- Established project timeline (3 days)
+- Completed PRs #1-5 (all core MVP features)
+- Implemented full drag & drop from media library to timeline
+- Added playhead sync between timeline and video player
+- Implemented zoom controls (buttons + slider) on timeline
+- Added clip rendering on timeline tracks
+- Implemented keyboard shortcuts (arrow keys, volume, play/pause)
+- Added trim handles to timeline clips with drag-to-trim functionality
+- Updated TimelineContext to support trimStart and trimEnd properties
 
 ## Immediate Next Steps
 
-1. Set up Electron + React project structure
-2. Configure basic window and UI layout (3-panel: Media Library, Preview, Timeline)
-3. Install core dependencies (electron, react, electron-builder)
-4. Test app launch
-5. Move to PR #2: FFmpeg Integration
+1. **PR #6: Trim & Export** (Critical for MVP)
+   - ✅ Implement trim handles on timeline clips (left/right edge dragging)
+   - Add export functionality (timeline → FFmpeg → MP4)
+   - Wire up export button in timeline controls
+2. Complete MVP requirements (export remaining)
+3. Move to PR #7: Screen Recording (if time)
 
 ## Active Decisions
 
@@ -46,7 +57,7 @@ Initializing the Electron + React project structure and setting up the developme
 
 ## Current Priorities
 
-1. **PR #1 Completion** (Project setup) - In progress
-2. **PR #2** (FFmpeg) - Next
-3. **PR #3** (Import) - Following
-4. **MVPGate Target**: Tuesday 10:59 PM CT
+1. **PR #6: Trim & Export** - Next (Critical for MVP)
+2. **MVP Completion** - Tuesday 10:59 PM CT deadline
+3. **PRs #7-10** - Wednesday 10:59 PM CT deadline (screen/webcam recording, advanced features)
+4. **Demo Video** - 3-5 minutes showcasing features

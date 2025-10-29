@@ -172,6 +172,35 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+/* Trim Handles */
+.trim-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: ew-resize;
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+
+.trim-handle:hover {
+  background: white;
+  width: 8px;
+}
+
+.trim-handle-left {
+  left: 0;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.trim-handle-right {
+  right: 0;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
 /* Playhead Line */
 .playhead-line {
   position: absolute;

@@ -37,6 +37,8 @@ export const TimelineProvider = ({ children }) => {
       endTime: clip.duration, // End of clip in the source video
       position: position || 0, // Position on timeline
       track: trackId,
+      trimStart: 0, // Trim start offset in seconds
+      trimEnd: clip.duration, // Trim end offset in seconds
     };
 
     setTracks((prevTracks) =>
@@ -82,6 +84,27 @@ export const TimelineProvider = ({ children }) => {
     );
   }, []);
 
+  const updateClipTrim = useCallback((clipId, trackId, newTrimStart = null, newTrimEnd = null) => {
+    setTracks((prevTracks) =>
+      prevTracks.map((track) =>
+        track.id === trackId
+          ? {
+              ...track,
+              clips: track.clips.map((clip) =>
+                clip.id === clipId
+                  ? {
+                      ...clip,
+                      trimStart: newTrimStart !== null ? Math.max(0, Math.min(newTrimStart, clip.endTime)) : clip.trimStart,
+                      trimEnd: newTrimEnd !== null ? Math.min(clip.duration, Math.max(clip.trimStart, newTrimEnd)) : clip.trimEnd,
+                    }
+                  : clip
+              ),
+            }
+          : track
+      )
+    );
+  }, []);
+
   const updatePlayhead = useCallback((newPlayhead) => {
     setPlayhead(newPlayhead);
   }, []);
@@ -100,6 +123,7 @@ export const TimelineProvider = ({ children }) => {
     addClipToTimeline,
     removeClipFromTimeline,
     updateClipPosition,
+    updateClipTrim,
   };
 
   return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>;
