@@ -142,19 +142,20 @@ function VideoPlayer({ selectedClip, onShowToast }) {
         case "ArrowLeft":
           e.preventDefault();
           // Skip backward 10 seconds
-          if (videoRef.current && duration) {
+          if (videoRef.current && videoRef.current.duration > 0) {
+            const currentTime = videoRef.current.currentTime;
             const newTime = Math.max(currentTime - 10, 0);
             videoRef.current.currentTime = newTime;
-            setCurrentTime(newTime);
           }
           break;
         case "ArrowRight":
           e.preventDefault();
           // Skip forward 10 seconds
-          if (videoRef.current && duration) {
+          if (videoRef.current && videoRef.current.duration > 0) {
+            const currentTime = videoRef.current.currentTime;
+            const duration = videoRef.current.duration;
             const newTime = Math.min(currentTime + 10, duration);
             videoRef.current.currentTime = newTime;
-            setCurrentTime(newTime);
           }
           break;
         case "ArrowUp":
@@ -195,7 +196,7 @@ function VideoPlayer({ selectedClip, onShowToast }) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedClip, isPlaying, currentTime, duration, volume, isMuted, togglePlayPause]);
+  }, [selectedClip, isPlaying, duration, volume, isMuted, togglePlayPause]);
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
@@ -284,20 +285,14 @@ function VideoPlayer({ selectedClip, onShowToast }) {
     }
   };
 
-  const seekToPosition = useCallback((clientX) => {
-    if (!videoRef.current || !progressBarRef.current || !duration) return;
-
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const time = pos * duration;
-
-    videoRef.current.currentTime = time;
-    setCurrentTime(time);
-  }, [duration]);
-
   const handleProgressBarMouseDown = (e) => {
     setIsSeeking(true);
-    seekToPosition(e.clientX);
+    if (!videoRef.current || !progressBarRef.current || !duration) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const time = pos * duration;
+    videoRef.current.currentTime = time;
+    setCurrentTime(time);
   };
 
   // Add global mouse event listeners for dragging
@@ -305,7 +300,12 @@ function VideoPlayer({ selectedClip, onShowToast }) {
     if (!isSeeking) return;
 
     const handleMouseMove = (e) => {
-      seekToPosition(e.clientX);
+      if (!videoRef.current || !progressBarRef.current || !duration) return;
+      const rect = progressBarRef.current.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const time = pos * duration;
+      videoRef.current.currentTime = time;
+      setCurrentTime(time);
     };
 
     const handleMouseUp = () => {
@@ -319,7 +319,7 @@ function VideoPlayer({ selectedClip, onShowToast }) {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isSeeking, duration, seekToPosition]);
+  }, [isSeeking, duration]);
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return "0:00";

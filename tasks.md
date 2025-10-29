@@ -280,7 +280,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Update video currentTime property
   - Show frame at new position
 
-- [x] 8. Add keyboard shortcuts
+  [x] 8. Add keyboard shortcuts
 
   - Spacebar: Play/Pause
   - Arrow Left: Skip back 10 seconds
