@@ -292,75 +292,79 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
         </div>
       </div>
 
-      <div className="timeline-content" ref={timelineContentRef}>
-        {/* Time Ruler */}
-        <div className="time-ruler">
-          <div className="time-ruler-container" style={{ minWidth: `${maxTimelineDuration * zoom * 10}px` }}>
-            {timeMarkers.map((marker, index) => (
-              <div
-                key={index}
-                className={`time-tick ${marker.isMajor ? "time-tick-major" : "time-tick-minor"}`}
-                style={{
-                  left: `${(marker.time / maxTimelineDuration) * zoom * 100}%`,
-                }}
-              >
-                {marker.isMajor && (
-                  <div className="time-label">{formatTime(marker.time)}</div>
-                )}
-              </div>
-            ))}
-            {/* Playhead in ruler */}
-            <div 
-              className="playhead-line playhead-ruler"
-              style={{ left: `${playhead * 100}%` }}
-              onMouseDown={handlePlayheadMouseDown}
-            />
-          </div>
+      <div className="timeline-content">
+        {/* Fixed Track Labels Column */}
+        <div className="track-labels-column">
+          <div className="track-label-spacer"></div>
+          <div className="track-label-item">MAIN</div>
+          <div className="track-label-item">OVERLAY</div>
         </div>
 
-        {/* Tracks */}
-        <div className="tracks-container" style={{ minWidth: `${maxTimelineDuration * zoom * 10}px` }}>
-          <div className="track track-main">
-            <div className="track-label">
-              <span>Main</span>
-            </div>
-            <div 
-              className={`track-content ${draggedOverTrack === "main" ? "drag-over" : ""}`}
-              onDragOver={(e) => handleTrackDragOver(e, "main")}
-              onDragLeave={handleTrackDragLeave}
-              onDrop={(e) => handleTrackDrop(e, "main")}
-            >
-              {/* Render clips for Main track */}
-              {tracks.find((t) => t.id === "main")?.clips.map((clip) => (
-                <TimelineClip key={clip.id} clip={clip} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
+        {/* Scrollable Timeline Section */}
+        <div className="timeline-scrollable" ref={timelineContentRef}>
+          {/* Time Ruler */}
+          <div className="time-ruler">
+            <div className="time-ruler-container" style={{ minWidth: `${maxTimelineDuration * zoom * 10}px` }}>
+              {timeMarkers.map((marker, index) => (
+                <div
+                  key={index}
+                  className={`time-tick ${marker.isMajor ? "time-tick-major" : "time-tick-minor"}`}
+                  style={{
+                    left: `${(marker.time / maxTimelineDuration) * zoom * 100}%`,
+                  }}
+                >
+                  {marker.isMajor && (
+                    <div className="time-label">{formatTime(marker.time)}</div>
+                  )}
+                </div>
               ))}
+              {/* Playhead in ruler */}
               <div 
-                className="playhead-line" 
+                className="playhead-line playhead-ruler"
                 style={{ left: `${playhead * 100}%` }}
                 onMouseDown={handlePlayheadMouseDown}
               />
             </div>
           </div>
 
-          <div className="track track-overlay">
-            <div className="track-label">
-              <span>Overlay</span>
-            </div>
-            <div 
-              className={`track-content ${draggedOverTrack === "overlay" ? "drag-over" : ""}`}
-              onDragOver={(e) => handleTrackDragOver(e, "overlay")}
-              onDragLeave={handleTrackDragLeave}
-              onDrop={(e) => handleTrackDrop(e, "overlay")}
-            >
-              {/* Render clips for Overlay track */}
-              {tracks.find((t) => t.id === "overlay")?.clips.map((clip) => (
-                <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
-              ))}
+          {/* Tracks */}
+          <div className="tracks-container" style={{ minWidth: `${maxTimelineDuration * zoom * 10}px` }}>
+            <div className="track track-main">
               <div 
-                className="playhead-line" 
-                style={{ left: `${playhead * 100}%` }}
-                onMouseDown={handlePlayheadMouseDown}
-              />
+                className={`track-content ${draggedOverTrack === "main" ? "drag-over" : ""}`}
+                onDragOver={(e) => handleTrackDragOver(e, "main")}
+                onDragLeave={handleTrackDragLeave}
+                onDrop={(e) => handleTrackDrop(e, "main")}
+              >
+                {/* Render clips for Main track */}
+                {tracks.find((t) => t.id === "main")?.clips.map((clip) => (
+                  <TimelineClip key={clip.id} clip={clip} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
+                ))}
+                <div 
+                  className="playhead-line" 
+                  style={{ left: `${playhead * 100}%` }}
+                  onMouseDown={handlePlayheadMouseDown}
+                />
+              </div>
+            </div>
+
+            <div className="track track-overlay">
+              <div 
+                className={`track-content ${draggedOverTrack === "overlay" ? "drag-over" : ""}`}
+                onDragOver={(e) => handleTrackDragOver(e, "overlay")}
+                onDragLeave={handleTrackDragLeave}
+                onDrop={(e) => handleTrackDrop(e, "overlay")}
+              >
+                {/* Render clips for Overlay track */}
+                {tracks.find((t) => t.id === "overlay")?.clips.map((clip) => (
+                  <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
+                ))}
+                <div 
+                  className="playhead-line" 
+                  style={{ left: `${playhead * 100}%` }}
+                  onMouseDown={handlePlayheadMouseDown}
+                />
+              </div>
             </div>
           </div>
         </div>
