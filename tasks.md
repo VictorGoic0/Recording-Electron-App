@@ -513,14 +513,14 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Configure codec: VP8 or H264 if supported
   - Set bitrate for quality
 
-- [ ] 4. Implement recording controls
+- [x] 4. Implement recording controls
 
   - Start button: Begin recording
   - Stop button: End recording and save
   - Pause/Resume buttons: Pause recording mid-capture
   - Recording timer: Show elapsed time (00:00)
 
-- [ ] 5. Add countdown before recording
+- [x] 5. Add countdown before recording
 
   - 3-2-1 countdown overlay
   - Visual and/or audio cue

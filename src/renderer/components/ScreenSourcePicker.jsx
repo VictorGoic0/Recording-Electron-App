@@ -168,7 +168,7 @@ function ScreenSourcePicker({ isOpen, onSelect, onClose }) {
             onClick={handleConfirm}
             disabled={!selectedSourceId}
           >
-            Start Recording
+            Select Source
           </button>
         </div>
       </div>

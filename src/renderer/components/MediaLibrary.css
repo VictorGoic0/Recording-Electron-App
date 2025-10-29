@@ -12,8 +12,20 @@
   align-items: center;
 }
 
+/* Record Section - Separate section below header */
+.record-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .record-button-container {
   position: relative;
+  display: flex;
+  justify-content: center;
 }
 
 .library-content {
@@ -294,8 +306,24 @@
   font-family: var(--font-family);
 }
 
-.btn-record:hover:not(:disabled) {
-  background: var(--bg-tertiary);
+/* When recording: bright red with animation */
+.btn-record.recording {
+  background: rgba(232, 17, 35, 0.1);
+  border-color: var(--color-danger);
+}
+
+.btn-record.recording .record-icon {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 2px rgba(232, 17, 35, 0.3);
+}
+
+.btn-record:hover:not(:disabled):not(.recording) {
+  background: #4a4a4a;
+  border-color: #666;
+}
+
+.btn-record:hover:not(:disabled).recording {
+  background: rgba(232, 17, 35, 0.15);
   border-color: var(--color-danger);
 }
 
@@ -312,9 +340,15 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--color-danger);
   display: inline-block;
+  transition: all 0.3s ease;
+  background: var(--color-danger);
   box-shadow: 0 0 0 2px rgba(232, 17, 35, 0.3);
+  animation: pulse-record 2s infinite;
+}
+
+/* When recording: keep the same animation */
+.record-icon.pulsing {
   animation: pulse-record 2s infinite;
 }
 
@@ -373,6 +407,151 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Countdown Overlay */
+.countdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.countdown-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-number {
+  font-size: 120px;
+  font-weight: bold;
+  color: var(--color-danger);
+  text-shadow: 0 0 30px rgba(232, 17, 35, 0.8);
+  animation: countdownPulse 0.5s ease;
+}
+
+@keyframes countdownPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* Recording Controls */
+.recording-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  background: #2a2a2a;
+}
+
+.recording-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recording-status {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recording-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  display: inline-block;
+  animation: pulse-record 2s infinite;
+}
+
+.recording-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-record-start,
+.btn-record-pause,
+.btn-record-stop {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-record-start:hover:not(:disabled),
+.btn-record-pause:hover:not(:disabled),
+.btn-record-stop:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-record-start {
+  background: var(--color-success);
+  color: white;
+}
+
+.btn-record-start:hover:not(:disabled) {
+  background: #15b300;
+}
+
+.btn-record-pause {
+  background: var(--color-warning);
+  color: white;
+}
+
+.btn-record-pause:hover {
+  background: #ff9e00;
+}
+
+.btn-record-stop {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn-record-stop:hover {
+  background: #d10f1f;
+}
+
+.btn-record-start:disabled,
+.btn-record-pause:disabled,
+.btn-record-stop:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Responsive adjustments */

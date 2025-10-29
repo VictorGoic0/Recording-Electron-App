@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./MediaLibrary.css";
 import ScreenSourcePicker from "./ScreenSourcePicker";
 import { useScreenRecording } from "../hooks/useScreenRecording";
@@ -21,14 +21,20 @@ function MediaLibrary({
   const [contextMenu, setContextMenu] = useState(null);
   const [isRecordDropdownOpen, setIsRecordDropdownOpen] = useState(false);
   const [isScreenSourcePickerOpen, setIsScreenSourcePickerOpen] = useState(false);
+  const [selectedSource, setSelectedSource] = useState(null);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdown, setCountdown] = useState(3);
 
   // Screen recording hook
   const {
     isRecording,
+    isPaused,
     recordingTime,
     formattedTime,
     error: recordingError,
     startRecording,
+    pauseRecording,
+    resumeRecording,
     stopRecording,
     cleanup,
   } = useScreenRecording();
@@ -59,19 +65,66 @@ function MediaLibrary({
     }
   };
 
-  const handleScreenSourceSelect = async (source) => {
+  const handleScreenSourceSelect = (source) => {
     console.log("Screen source selected:", source);
+    setSelectedSource(source);
     setIsScreenSourcePickerOpen(false);
+  };
 
-    try {
-      // Start recording with the selected source
-      await startRecording(source.id, {
-        bitrate: 2500000, // 2.5 Mbps
+  const countdownIntervalRef = useRef(null);
+
+  const handleStartRecording = async () => {
+    if (!selectedSource) return;
+
+    // Clear any existing countdown
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+
+    // Start countdown
+    setShowCountdown(true);
+    setCountdown(3);
+
+    // Countdown: 3, 2, 1
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
+          setShowCountdown(false);
+          // Start recording after countdown
+          startRecording(selectedSource.id, {
+            bitrate: 2500000, // 2.5 Mbps
+          }).catch((error) => {
+            console.error("Failed to start recording:", error);
+            setShowCountdown(false);
+          });
+          return 0;
+        }
+        return prev - 1;
       });
-      console.log("Recording started for source:", source.name);
+    }, 1000);
+  };
+
+  // Cleanup countdown on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const handleStopRecording = async () => {
+    try {
+      const blob = await stopRecording();
+      setSelectedSource(null);
+      console.log("Recording stopped, blob size:", blob.size);
+      // TODO: Save recording to file (subtask 7)
     } catch (error) {
-      console.error("Failed to start recording:", error);
-      // Error will be handled by the hook's error state
+      console.error("Failed to stop recording:", error);
     }
   };
 
@@ -207,46 +260,18 @@ function MediaLibrary({
 
   return (
     <aside className="media-library">
+      {/* Countdown Overlay */}
+      {showCountdown && (
+        <div className="countdown-overlay">
+          <div className="countdown-content">
+            <div className="countdown-number">{countdown > 0 ? countdown : "GO!"}</div>
+          </div>
+        </div>
+      )}
+
       <div className="panel-header">
         <h2>Media Library</h2>
         <div className="header-buttons">
-          <div className="record-button-container">
-            <button 
-              className="btn-record" 
-              onClick={handleRecordClick}
-              disabled={isProcessing}
-              title="Record screen, webcam, or both"
-            >
-              <span className="record-icon"></span>
-              <span>Record</span>
-              <span className="dropdown-arrow">▼</span>
-            </button>
-            {isRecordDropdownOpen && (
-              <div className="record-dropdown">
-                <div 
-                  className="record-dropdown-item" 
-                  onClick={() => handleRecordOptionSelect("screen")}
-                >
-                  <span className="dropdown-icon">🖥️</span>
-                  <span>Screen</span>
-                </div>
-                <div 
-                  className="record-dropdown-item" 
-                  onClick={() => handleRecordOptionSelect("webcam")}
-                >
-                  <span className="dropdown-icon">📹</span>
-                  <span>Webcam</span>
-                </div>
-                <div 
-                  className="record-dropdown-item" 
-                  onClick={() => handleRecordOptionSelect("both")}
-                >
-                  <span className="dropdown-icon">🎬</span>
-                  <span>Both</span>
-                </div>
-              </div>
-            )}
-          </div>
           <button 
             className="btn-primary" 
             onClick={handleImportClick}
@@ -255,6 +280,91 @@ function MediaLibrary({
             {isProcessing ? "Processing..." : "+ Import"}
           </button>
         </div>
+      </div>
+
+      {/* Record Button Section */}
+      <div className="record-section">
+        <div className="record-button-container">
+          <button 
+            className={`btn-record ${isRecording ? "recording" : ""}`}
+            onClick={handleRecordClick}
+            disabled={isProcessing || isRecording}
+            title={isRecording ? "Recording in progress" : "Record screen, webcam, or both"}
+          >
+            <span className="record-icon"></span>
+            <span>Record</span>
+            <span className="dropdown-arrow">▼</span>
+          </button>
+          {isRecordDropdownOpen && (
+            <div className="record-dropdown">
+              <div 
+                className="record-dropdown-item" 
+                onClick={() => handleRecordOptionSelect("screen")}
+              >
+                <span className="dropdown-icon">🖥️</span>
+                <span>Screen</span>
+              </div>
+              <div 
+                className="record-dropdown-item" 
+                onClick={() => handleRecordOptionSelect("webcam")}
+              >
+                <span className="dropdown-icon">📹</span>
+                <span>Webcam</span>
+              </div>
+              <div 
+                className="record-dropdown-item" 
+                onClick={() => handleRecordOptionSelect("both")}
+              >
+                <span className="dropdown-icon">🎬</span>
+                <span>Both</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Recording Controls */}
+        {selectedSource && (
+          <div className="recording-controls">
+            <div className="recording-info">
+              {isRecording ? (
+                <span className="recording-status">
+                  <span className="recording-indicator"></span>
+                  Recording: {formattedTime}
+                </span>
+              ) : (
+                <span className="recording-status">
+                  Ready: {selectedSource.name}
+                </span>
+              )}
+            </div>
+            <div className="recording-buttons">
+              {!isRecording ? (
+                <button
+                  className="btn-record-start"
+                  onClick={handleStartRecording}
+                  disabled={isProcessing}
+                >
+                  ▶ Start Recording
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="btn-record-pause"
+                    onClick={isPaused ? resumeRecording : pauseRecording}
+                  >
+                    {isPaused ? "▶ Resume" : "⏸ Pause"}
+                  </button>
+                  <button
+                    className="btn-record-stop"
+                    onClick={handleStopRecording}
+                  >
+                    ⏹ Stop
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div
