@@ -6,6 +6,16 @@
   background: var(--bg-secondary);
 }
 
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.record-button-container {
+  position: relative;
+}
+
 .library-content {
   flex: 1;
   overflow-y: auto;
@@ -265,6 +275,102 @@
   height: 1px;
   background: var(--border-color);
   margin: 4px 0;
+}
+
+/* Record Button */
+.btn-record {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-family: var(--font-family);
+}
+
+.btn-record:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--color-danger);
+}
+
+.btn-record:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-record:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.record-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(232, 17, 35, 0.3);
+  animation: pulse-record 2s infinite;
+}
+
+@keyframes pulse-record {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(232, 17, 35, 0.3);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(232, 17, 35, 0.1);
+    opacity: 0.8;
+  }
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  margin-left: 2px;
+  opacity: 0.7;
+}
+
+/* Record Dropdown Menu */
+.record-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  min-width: 160px;
+  padding: 4px 0;
+  z-index: 1000;
+  user-select: none;
+}
+
+.record-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  transition: background 0.15s ease;
+}
+
+.record-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-icon {
+  font-size: 16px;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Responsive adjustments */

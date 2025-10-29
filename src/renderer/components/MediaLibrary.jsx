@@ -17,11 +17,23 @@ function MediaLibrary({
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+  const [isRecordDropdownOpen, setIsRecordDropdownOpen] = useState(false);
 
   const handleImportClick = () => {
     if (onImport) {
       onImport();
     }
+  };
+
+  const handleRecordClick = (event) => {
+    event.stopPropagation();
+    setIsRecordDropdownOpen(!isRecordDropdownOpen);
+  };
+
+  const handleRecordOptionSelect = (option) => {
+    console.log("Record option selected:", option);
+    // TODO: Implement recording logic based on option (Screen, Webcam, Both)
+    setIsRecordDropdownOpen(false);
   };
 
   const handleClipClick = (clip) => {
@@ -129,17 +141,70 @@ function MediaLibrary({
     }
   }, [contextMenu]);
 
+  // Close record dropdown when clicking outside
+  React.useEffect(() => {
+    if (isRecordDropdownOpen) {
+      const handleClick = (event) => {
+        const target = event.target;
+        if (!target.closest('.record-button-container')) {
+          setIsRecordDropdownOpen(false);
+        }
+      };
+      document.addEventListener("click", handleClick);
+      return () => document.removeEventListener("click", handleClick);
+    }
+  }, [isRecordDropdownOpen]);
+
   return (
     <aside className="media-library">
       <div className="panel-header">
         <h2>Media Library</h2>
-        <button 
-          className="btn-primary" 
-          onClick={handleImportClick}
-          disabled={isProcessing}
-        >
-          {isProcessing ? "Processing..." : "+ Import"}
-        </button>
+        <div className="header-buttons">
+          <div className="record-button-container">
+            <button 
+              className="btn-record" 
+              onClick={handleRecordClick}
+              disabled={isProcessing}
+              title="Record screen, webcam, or both"
+            >
+              <span className="record-icon"></span>
+              <span>Record</span>
+              <span className="dropdown-arrow">▼</span>
+            </button>
+            {isRecordDropdownOpen && (
+              <div className="record-dropdown">
+                <div 
+                  className="record-dropdown-item" 
+                  onClick={() => handleRecordOptionSelect("screen")}
+                >
+                  <span className="dropdown-icon">🖥️</span>
+                  <span>Screen</span>
+                </div>
+                <div 
+                  className="record-dropdown-item" 
+                  onClick={() => handleRecordOptionSelect("webcam")}
+                >
+                  <span className="dropdown-icon">📹</span>
+                  <span>Webcam</span>
+                </div>
+                <div 
+                  className="record-dropdown-item" 
+                  onClick={() => handleRecordOptionSelect("both")}
+                >
+                  <span className="dropdown-icon">🎬</span>
+                  <span>Both</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <button 
+            className="btn-primary" 
+            onClick={handleImportClick}
+            disabled={isProcessing}
+          >
+            {isProcessing ? "Processing..." : "+ Import"}
+          </button>
+        </div>
       </div>
 
       <div
