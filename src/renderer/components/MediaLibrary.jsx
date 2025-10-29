@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./MediaLibrary.css";
 import ScreenSourcePicker from "./ScreenSourcePicker";
+import { useScreenRecording } from "../hooks/useScreenRecording";
 
 /**
  * MediaLibrary Component
@@ -20,6 +21,17 @@ function MediaLibrary({
   const [contextMenu, setContextMenu] = useState(null);
   const [isRecordDropdownOpen, setIsRecordDropdownOpen] = useState(false);
   const [isScreenSourcePickerOpen, setIsScreenSourcePickerOpen] = useState(false);
+
+  // Screen recording hook
+  const {
+    isRecording,
+    recordingTime,
+    formattedTime,
+    error: recordingError,
+    startRecording,
+    stopRecording,
+    cleanup,
+  } = useScreenRecording();
 
   const handleImportClick = () => {
     if (onImport) {
@@ -47,11 +59,28 @@ function MediaLibrary({
     }
   };
 
-  const handleScreenSourceSelect = (source) => {
+  const handleScreenSourceSelect = async (source) => {
     console.log("Screen source selected:", source);
     setIsScreenSourcePickerOpen(false);
-    // TODO: Start recording with selected source
+
+    try {
+      // Start recording with the selected source
+      await startRecording(source.id, {
+        bitrate: 2500000, // 2.5 Mbps
+      });
+      console.log("Recording started for source:", source.name);
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+      // Error will be handled by the hook's error state
+    }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   const handleScreenSourcePickerClose = () => {
     setIsScreenSourcePickerOpen(false);
@@ -154,7 +183,7 @@ function MediaLibrary({
   };
 
   // Close context menu when clicking anywhere
-  React.useEffect(() => {
+  useEffect(() => {
     if (contextMenu) {
       const handleClick = () => closeContextMenu();
       document.addEventListener("click", handleClick);
@@ -163,7 +192,7 @@ function MediaLibrary({
   }, [contextMenu]);
 
   // Close record dropdown when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     if (isRecordDropdownOpen) {
       const handleClick = (event) => {
         const target = event.target;

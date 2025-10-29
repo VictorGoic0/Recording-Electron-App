@@ -506,7 +506,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Show thumbnails of available sources
   - Allow user to select which screen/window to record
 
-- [ ] 3. Set up MediaRecorder for screen recording
+- [x] 3. Set up MediaRecorder for screen recording
 
   - Request screen stream via `getUserMedia()` with desktopCapturer source
   - Create `MediaRecorder` instance
