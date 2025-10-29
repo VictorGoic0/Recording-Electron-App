@@ -875,6 +875,38 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 - [ ] 4. Save as single output file
 - [ ] 5. Add webcam position/size controls during recording
 
+### PR #16: Canvas-Based Timeline Rendering (Stretch)
+
+**Goal:** Replace React-based timeline rendering with Canvas for buttery-smooth 60fps scrubbing
+
+- [ ] 1. Create Canvas timeline renderer
+  - Replace React clip divs with Canvas drawing
+  - Draw clips, trim handles, playhead directly to canvas
+  - Handle mouse events on canvas (click, drag detection)
+- [ ] 2. Implement pixel-perfect mouse tracking
+  - Convert mouse coordinates to timeline position
+  - Direct visual updates without React re-renders
+  - Immediate feedback on drag (no state propagation delay)
+- [ ] 3. Optimize rendering loop
+  - Only redraw when necessary (dirty flag pattern)
+  - Use requestAnimationFrame for smooth 60fps
+  - Separate layers: background grid, clips, playhead, handles
+- [ ] 4. Maintain feature parity
+  - Trim handles with drag
+  - Clip selection
+  - Playhead scrubbing
+  - Zoom controls
+- [ ] 5. Benchmark performance
+  - Test with 50+ clips on timeline
+  - Measure frame rate during scrubbing
+  - Compare to React-based approach
+
+**Benefits:**
+
+- True real-time scrubbing (60fps)
+- Handles hundreds of clips without lag
+- Industry-standard approach (Premiere, Final Cut)
+
 ---
 
 ## Daily Breakdown

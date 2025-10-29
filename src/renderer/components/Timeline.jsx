@@ -10,6 +10,11 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
   const { updateClipTrim, updateClipPosition, selectTimelineClip, selectedTimelineClipId } = useTimeline();
   const [isTrimming, setIsTrimming] = useState(null); // 'left' or 'right'
   const dragStartRef = useRef(null);
+  
+  // Local visual state during drag (no context updates until release)
+  const [localTrimStart, setLocalTrimStart] = useState(null);
+  const [localTrimEnd, setLocalTrimEnd] = useState(null);
+  const [localPosition, setLocalPosition] = useState(null);
 
   const isSelected = selectedTimelineClipId === clip.id;
 
@@ -19,13 +24,21 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
     setIsTrimming(side);
     
     // Store initial state for smooth dragging
+    const initialTrimStart = clip.trimStart || 0;
+    const initialTrimEnd = clip.trimEnd || clip.duration;
+    
     dragStartRef.current = {
       mouseX: e.clientX,
-      trimStart: clip.trimStart || 0,
-      trimEnd: clip.trimEnd || clip.duration,
+      trimStart: initialTrimStart,
+      trimEnd: initialTrimEnd,
       position: clip.position,
       duration: clip.duration,
     };
+    
+    // Initialize local state
+    setLocalTrimStart(initialTrimStart);
+    setLocalTrimEnd(initialTrimEnd);
+    setLocalPosition(clip.position);
   };
 
   useEffect(() => {
@@ -40,21 +53,33 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
       const secondsDelta = deltaX / scale;
 
       if (isTrimming === 'left') {
-        // Trim from start: calculate new trim start from INITIAL values
+        // Trim from start: calculate new values and update LOCAL state only
         const newTrimStart = Math.max(0, Math.min(initial.trimEnd, initial.trimStart + secondsDelta));
         const trimDelta = newTrimStart - initial.trimStart;
-        updateClipTrim(clip.id, clip.track, newTrimStart, null);
-        updateClipPosition(clip.id, clip.track, initial.position + trimDelta);
+        setLocalTrimStart(newTrimStart);
+        setLocalPosition(initial.position + trimDelta);
       } else if (isTrimming === 'right') {
-        // Trim from end: calculate new trim end from INITIAL values
+        // Trim from end: calculate new value and update LOCAL state only
         const newTrimEnd = Math.min(initial.duration, Math.max(initial.trimStart, initial.trimEnd + secondsDelta));
-        updateClipTrim(clip.id, clip.track, null, newTrimEnd);
+        setLocalTrimEnd(newTrimEnd);
       }
     };
 
     const handleMouseUp = () => {
+      // On release, commit final values to context
+      if (isTrimming === 'left') {
+        updateClipTrim(clip.id, clip.track, localTrimStart, null);
+        updateClipPosition(clip.id, clip.track, localPosition);
+      } else if (isTrimming === 'right') {
+        updateClipTrim(clip.id, clip.track, null, localTrimEnd);
+      }
+      
+      // Clean up
       setIsTrimming(null);
       dragStartRef.current = null;
+      setLocalTrimStart(null);
+      setLocalTrimEnd(null);
+      setLocalPosition(null);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -64,9 +89,14 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isTrimming, clip.id, clip.track, scale, updateClipTrim, updateClipPosition]);
+  }, [isTrimming, clip.id, clip.track, scale, localTrimStart, localTrimEnd, localPosition, updateClipTrim, updateClipPosition]);
 
-  const effectiveDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
+  // Use local state during drag, context state when not dragging
+  const displayTrimStart = isTrimming ? localTrimStart : (clip.trimStart || 0);
+  const displayTrimEnd = isTrimming ? localTrimEnd : (clip.trimEnd || clip.duration);
+  const displayPosition = isTrimming === 'left' ? localPosition : clip.position;
+  
+  const effectiveDuration = displayTrimEnd - displayTrimStart;
   const displayWidth = effectiveDuration;
 
   const clipType = clip.type === 'overlay' ? 'overlay' : 'main';
@@ -84,7 +114,7 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
     <div
       className={clipClassName}
       style={{
-        left: `${(clip.position / maxDuration) * zoom * 100}%`,
+        left: `${(displayPosition / maxDuration) * zoom * 100}%`,
         width: `${(displayWidth / maxDuration) * zoom * 100}%`,
       }}
       title={`${clip.filename} (${displayWidth.toFixed(1)}s)`}
