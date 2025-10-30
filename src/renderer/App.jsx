@@ -120,8 +120,16 @@ function App() {
             ...result.data,
           };
 
+          // Log detailed clip information for debugging
+          console.log(`✓ Successfully processed: ${clip.filename}`, {
+            duration: clip.duration,
+            durationType: typeof clip.duration,
+            durationIsFinite: isFinite(clip.duration),
+            resolution: clip.resolution,
+            fileSize: clip.fileSize
+          });
+
           newClips.push(clip);
-          console.log(`✓ Successfully processed: ${clip.filename}`);
         } else {
           // Check if it's a corrupted file error
           if (result.error.includes("Invalid data") || result.error.includes("moov atom not found")) {
@@ -214,6 +222,7 @@ function App() {
           <MediaLibrary
             clips={clips}
             onImport={handleImport}
+            onProcessFiles={processImportedFiles}
             onClipSelect={handleClipSelect}
             selectedClipId={selectedClipId}
             onRemoveClip={handleRemoveClip}

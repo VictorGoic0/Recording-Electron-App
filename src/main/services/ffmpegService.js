@@ -141,7 +141,28 @@ function getVideoMetadata(filePath) {
  */
 async function getVideoDuration(filePath) {
   const metadata = await getVideoMetadata(filePath);
-  return metadata.format.duration || 0;
+  const rawDuration = metadata.format.duration;
+
+  // Parse duration - handle string "N/A" or invalid values
+  let duration = 0;
+
+  if (typeof rawDuration === "string") {
+    const parsed = parseFloat(rawDuration);
+    duration = isFinite(parsed) ? parsed : 0;
+  } else if (typeof rawDuration === "number" && isFinite(rawDuration)) {
+    duration = rawDuration;
+  }
+
+  // Log duration for debugging
+  console.log(`[FFmpeg Service] Duration for ${filePath}:`, {
+    duration,
+    type: typeof duration,
+    isFinite: isFinite(duration),
+    raw: rawDuration,
+    rawType: typeof rawDuration,
+  });
+
+  return duration;
 }
 
 /**

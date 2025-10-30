@@ -126,5 +126,14 @@ contextBridge.exposeInMainWorld("electron", {
      */
     getDesktopSources: (options) =>
       ipcRenderer.invoke("get-desktop-sources", options),
+
+    /**
+     * Save recording to file
+     * @param {ArrayBuffer} buffer - Recording data buffer
+     * @param {string} filename - Filename to save as
+     * @returns {Promise<{success: boolean, filePath?: string, error?: string}>}
+     */
+    saveRecording: (buffer, filename) =>
+      ipcRenderer.invoke("save-recording", buffer, filename),
   },
 });

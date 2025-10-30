@@ -32,11 +32,23 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
   useEffect(() => {
     if (videoRef.current && duration > 0 && timelinePlayhead !== undefined) {
       const newTime = timelinePlayhead * duration;
+      
+      // Validate newTime is a finite number
+      if (!isFinite(newTime) || isNaN(newTime)) {
+        console.error("VideoPlayer: Invalid time calculated from playhead", {
+          timelinePlayhead,
+          duration,
+          newTime,
+          selectedClip
+        });
+        return;
+      }
+      
       if (Math.abs(videoRef.current.currentTime - newTime) > 0.1) {
         videoRef.current.currentTime = newTime;
       }
     }
-  }, [timelinePlayhead, duration]);
+  }, [timelinePlayhead, duration, selectedClip]);
 
   // Reset player and load new source when clip file changes (NOT when trim changes)
   useEffect(() => {
@@ -246,7 +258,18 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(videoRef.current.duration);
+      const videoDuration = videoRef.current.duration;
+      
+      // Validate duration before setting
+      if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+        console.warn("VideoPlayer: Invalid duration from video element", {
+          duration: videoDuration,
+          selectedClip
+        });
+        setDuration(0);
+      } else {
+        setDuration(videoDuration);
+      }
       
       // Check for audio-only files
       if (videoRef.current.videoWidth === 0 && videoRef.current.videoHeight === 0) {

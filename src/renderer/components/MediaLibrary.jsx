@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./MediaLibrary.css";
 import ScreenSourcePicker from "./ScreenSourcePicker";
+import Toast from "./Toast";
 import { useScreenRecording } from "../hooks/useScreenRecording";
 
 /**
@@ -10,7 +11,8 @@ import { useScreenRecording } from "../hooks/useScreenRecording";
  */
 function MediaLibrary({ 
   clips = [], 
-  onImport, 
+  onImport,
+  onProcessFiles,
   onClipSelect, 
   selectedClipId,
   onRemoveClip,
@@ -24,6 +26,7 @@ function MediaLibrary({
   const [selectedSource, setSelectedSource] = useState(null);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [notification, setNotification] = useState(null);
 
   // Screen recording hook
   const {
@@ -41,6 +44,12 @@ function MediaLibrary({
     toggleMicrophone,
     cleanup,
   } = useScreenRecording();
+
+  // Show notification helper
+  const showNotification = (message, type = "info") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
 
   const handleImportClick = (event) => {
     event.preventDefault();
@@ -94,6 +103,16 @@ function MediaLibrary({
       });
     } catch (error) {
       console.error("Failed to start recording:", error);
+      
+      if (error.message.includes("Permission denied")) {
+        showNotification("Screen recording permission denied. Please allow screen recording in your system settings.", "error");
+      } else if (error.message.includes("not allowed")) {
+        showNotification("Screen recording not allowed. Check your browser/system permissions.", "error");
+      } else {
+        showNotification("Failed to start recording. Please try again.", "error");
+      }
+      
+      setSelectedSource(null);
     }
   };
 
@@ -117,13 +136,71 @@ function MediaLibrary({
     event.stopPropagation();
     try {
       const blob = await stopRecording();
-      setSelectedSource(null);
       console.log("Recording stopped, blob size:", blob.size);
-      // TODO: Save recording to file (subtask 7)
+      
+      if (blob.size === 0) {
+        console.error("Recording is empty, not saving");
+        showNotification("Recording is empty. Please try recording again.", "error");
+        setSelectedSource(null);
+        return;
+      }
+      
+      // Generate filename with timestamp
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const filename = `screen-recording-${year}-${month}-${day}-${hours}-${minutes}-${seconds}.webm`;
+      
+      console.log("Saving recording as:", filename);
+      showNotification("Saving recording...", "info");
+      
+      // Convert blob to array buffer
+      const arrayBuffer = await blob.arrayBuffer();
+      
+      // Save to disk using Electron IPC
+      const saveResult = await window.electron.recording.saveRecording(arrayBuffer, filename);
+      
+      if (saveResult.success) {
+        console.log("Recording saved successfully:", saveResult.filePath);
+        
+        // Process the saved file and add to media library
+        if (onProcessFiles) {
+          console.log("Processing recording and adding to library...");
+          
+          try {
+            // Use onProcessFiles directly with the file path
+            await onProcessFiles([saveResult.filePath]);
+            console.log("Recording added to media library");
+            showNotification("Recording saved to library!", "success");
+          } catch (error) {
+            console.error("Failed to process recording:", error);
+            showNotification("Recording saved but failed to process. You can import it manually.", "warning");
+          }
+        }
+        
+        setSelectedSource(null);
+      } else {
+        console.error("Failed to save recording:", saveResult.error);
+        showNotification("Failed to save recording. Please try again.", "error");
+        setSelectedSource(null);
+      }
     } catch (error) {
       console.error("Failed to stop recording:", error);
+      showNotification("Failed to stop recording. Please try again.", "error");
+      setSelectedSource(null);
     }
   };
+
+  // Show recording errors from hook
+  useEffect(() => {
+    if (recordingError) {
+      showNotification(recordingError, "error");
+    }
+  }, [recordingError]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -271,6 +348,18 @@ function MediaLibrary({
         </div>
       )}
 
+      {/* Notification Toast */}
+      {notification && (
+        <div className="toast-container">
+          <Toast
+            message={notification.message}
+            type={notification.type}
+            duration={4000}
+            onClose={() => setNotification(null)}
+          />
+        </div>
+      )}
+
       <div className="panel-header">
         <h2>Media Library</h2>
         <div className="header-buttons">
@@ -353,7 +442,8 @@ function MediaLibrary({
                     disabled={isProcessing}
                     title={isMicEnabled ? "Microphone enabled" : "Microphone disabled"}
                   >
-                    {isMicEnabled ? "🎤" : "🎤"}
+                    <span className="mic-icon">🎤</span>
+                    {!isMicEnabled && <span className="mic-disabled-overlay">✕</span>}
                   </button>
                   <button
                     className="btn-record-start"
@@ -472,8 +562,16 @@ function ClipCard({ clip, isSelected, onClick, onContextMenu }) {
   const [isDragging, setIsDragging] = React.useState(false);
 
   const formatDuration = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+    // Convert to number if it's a string
+    const duration = typeof seconds === 'string' ? parseFloat(seconds) : seconds;
+    
+    // Handle invalid or missing duration
+    if (duration == null || isNaN(duration) || duration < 0) {
+      return "0:00";
+    }
+    
+    const minutes = Math.floor(duration / 60);
+    const secs = Math.floor(duration % 60);
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
 

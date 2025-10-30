@@ -534,35 +534,30 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Handle microphone permission denial gracefully
   - Show microphone toggle button
 
-- [ ] 7. Save recording to file
+- [x] 7. Save recording to file
 
   - Collect recorded chunks from MediaRecorder
   - Combine chunks into Blob
   - Convert Blob to file and save to disk
   - Auto-generate filename with timestamp: `screen-recording-2025-10-27-14-30-45.webm`
 
-- [ ] 8. Add recorded file to media library
+- [x] 8. Add recorded file to media library
 
   - Process saved file (extract metadata, generate thumbnail)
   - Add to media library state automatically
   - Show notification: "Recording saved to library"
 
-- [ ] 9. Show recording indicator during capture
+- [x] 9. Show recording indicator during capture
 
   - Red dot or "REC" badge on UI
   - Timer showing elapsed recording time
   - Pulsing animation to indicate active recording
 
-- [ ] 10. Handle recording errors
+- [x] 10. Handle recording errors
 
   - Permission denied: Show message, guide user to settings
   - No screen sources available: Show error
   - Recording failed: Show error, allow retry
-
-- [ ] 11. Add audio level meter (optional for stretch)
-  - Visual indicator of microphone input level
-  - Prevents recording silent audio
-  - Real-time feedback during recording
 
 **PR Completion Criteria:**
 

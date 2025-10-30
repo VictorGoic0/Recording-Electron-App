@@ -548,29 +548,39 @@
 
 .btn-mic-toggle {
   padding: 10px 16px;
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
-  font-size: 18px;
-  min-width: 48px;
-}
-
-.btn-mic-toggle.enabled {
   background: var(--color-primary);
   color: white;
+  font-size: 18px;
+  min-width: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn-mic-toggle.disabled {
-  background: #444;
-  color: #888;
-  opacity: 0.7;
-}
-
-.btn-mic-toggle.enabled:hover:not(:disabled) {
+.btn-mic-toggle:hover:not(:disabled) {
   background: #0056b3;
 }
 
-.btn-mic-toggle.disabled:hover:not(:disabled) {
-  background: #555;
+.btn-mic-toggle .mic-icon {
+  display: block;
+  line-height: 1;
+}
+
+.btn-mic-toggle .mic-disabled-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--color-danger);
+  text-shadow: 
+    -1px -1px 0 white,
+    1px -1px 0 white,
+    -1px 1px 0 white,
+    1px 1px 0 white;
+  pointer-events: none;
 }
 
 .btn-record-start:disabled,

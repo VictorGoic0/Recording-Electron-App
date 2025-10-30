@@ -536,3 +536,30 @@ ipcMain.handle("get-desktop-sources", async (event, options = {}) => {
     };
   }
 });
+
+// Save screen recording to file
+ipcMain.handle("save-recording", async (event, buffer, filename) => {
+  try {
+    console.log("[IPC] Saving recording:", filename);
+
+    // Get the user's videos directory
+    const videosPath = app.getPath("videos");
+    const savePath = path.join(videosPath, filename);
+
+    // Write the buffer to file
+    await fs.promises.writeFile(savePath, Buffer.from(buffer));
+
+    console.log("[IPC] Recording saved successfully:", savePath);
+
+    return {
+      success: true,
+      filePath: savePath,
+    };
+  } catch (error) {
+    console.error("[IPC] Failed to save recording:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
