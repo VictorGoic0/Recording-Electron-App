@@ -656,18 +656,26 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Visual stacking (Track 2 and 3 appear above Track 1)
   - All 3 tracks functional with drag & drop support
 
-- [ ] 2. Update drag-and-drop to support track selection
+- [x] 2. Update drag-and-drop to support track selection
 
-  - Detect which track user drops clip onto
-  - Assign clip to appropriate track in state
-  - Visual feedback showing target track
+  - Detect which track user drops clip onto ✓
+  - Assign clip to appropriate track in state ✓
+  - Visual feedback showing target track ✓
+  - Enhanced with pulsing animation on drag-over
+  - Track label highlights when targeted
+  - Dashed border and glow effect on drop target
 
-- [ ] 3. Implement multi-track rendering in preview
+- [x] 3. Implement multi-track rendering in preview
 
-  - Overlay Track 2 clips on top of Track 1 clips
-  - Handle positioning: Track 2 clips render at reduced size in corner
-  - Allow dragging Track 2 clips to reposition (stretch)
-  - Allow resizing Track 2 clips (stretch)
+  - Overlay Track 2 clips on top of Track 1 clips ✓
+  - Handle positioning: Track 2 clips render at reduced size in corner ✓
+  - Overlay track positioned bottom-right (25% width)
+  - Overlay 2 track positioned bottom-left (25% width)
+  - Synchronized playback across all tracks ✓
+  - Auto-sync play/pause states ✓
+  - Real-time time synchronization (100ms interval)
+  - Allow dragging Track 2 clips to reposition (stretch - not implemented)
+  - Allow resizing Track 2 clips (stretch - not implemented)
 
 - [ ] 4. Update export to handle multiple tracks
 

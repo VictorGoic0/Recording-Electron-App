@@ -234,6 +234,8 @@ function App() {
           <VideoPlayer 
             selectedMediaClip={selectedClip}
             selectedTimelineClip={selectedTimelineClip}
+            tracks={tracks}
+            playhead={playhead}
             onShowToast={showToast}
             onCurrentTimeChange={setPlayhead}
             timelinePlayhead={playhead}

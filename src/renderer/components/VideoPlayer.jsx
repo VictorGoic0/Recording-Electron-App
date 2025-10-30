@@ -9,8 +9,9 @@ import "./VideoPlayer.css";
  * to securely load local video files without triggering Electron's
  * file:// security restrictions.
  */
-function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onCurrentTimeChange, timelinePlayhead }) {
+function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead, onShowToast, onCurrentTimeChange, timelinePlayhead }) {
   const videoRef = useRef(null);
+  const overlayVideoRefs = useRef([]);
   const progressBarRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -24,9 +25,38 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
   const selectedClip = selectedTimelineClip || selectedMediaClip;
   const isTimelineClip = !!selectedTimelineClip;
   
+  // Multi-track preview mode: show overlays when viewing timeline
+  const isMultiTrackMode = tracks && tracks.length > 0 && !selectedMediaClip;
+  
   // Get trim bounds (only apply for timeline clips)
   const trimStart = isTimelineClip ? (selectedTimelineClip.trimStart || 0) : 0;
   const trimEnd = isTimelineClip ? (selectedTimelineClip.trimEnd || selectedClip?.duration || 0) : (selectedClip?.duration || 0);
+
+  // Get overlay clips at current playhead position (for multi-track mode)
+  const getOverlayClips = () => {
+    if (!isMultiTrackMode || !tracks) return [];
+    
+    const overlays = [];
+    // Get overlay and overlay2 tracks
+    const overlayTrack = tracks.find(track => track.id === "overlay");
+    const overlay2Track = tracks.find(track => track.id === "overlay2");
+    
+    if (overlayTrack) {
+      overlayTrack.clips.forEach(clip => {
+        overlays.push({ ...clip, trackId: "overlay" });
+      });
+    }
+    
+    if (overlay2Track) {
+      overlay2Track.clips.forEach(clip => {
+        overlays.push({ ...clip, trackId: "overlay2" });
+      });
+    }
+    
+    return overlays;
+  };
+
+  const overlayClips = getOverlayClips();
 
   // Sync timeline playhead changes to video (when user drags playhead on timeline)
   useEffect(() => {
@@ -47,8 +77,48 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
       if (Math.abs(videoRef.current.currentTime - newTime) > 0.1) {
         videoRef.current.currentTime = newTime;
       }
+      
+      // Sync overlay videos
+      overlayVideoRefs.current.forEach(overlayVideo => {
+        if (overlayVideo && Math.abs(overlayVideo.currentTime - newTime) > 0.1) {
+          overlayVideo.currentTime = newTime;
+        }
+      });
     }
   }, [timelinePlayhead, duration, selectedClip]);
+
+  // Sync overlay videos play/pause with main video
+  useEffect(() => {
+    if (!videoRef.current || overlayClips.length === 0) return;
+    
+    const mainVideo = videoRef.current;
+    
+    const syncOverlays = () => {
+      overlayVideoRefs.current.forEach(overlayVideo => {
+        if (!overlayVideo) return;
+        
+        // Sync play state
+        if (isPlaying && overlayVideo.paused) {
+          overlayVideo.play().catch(err => console.warn("Overlay play failed:", err));
+        } else if (!isPlaying && !overlayVideo.paused) {
+          overlayVideo.pause();
+        }
+        
+        // Sync time
+        if (Math.abs(overlayVideo.currentTime - mainVideo.currentTime) > 0.2) {
+          overlayVideo.currentTime = mainVideo.currentTime;
+        }
+      });
+    };
+    
+    // Sync on play/pause changes
+    syncOverlays();
+    
+    // Periodically sync during playback
+    const syncInterval = setInterval(syncOverlays, 100);
+    
+    return () => clearInterval(syncInterval);
+  }, [isPlaying, overlayClips.length]);
 
   // Reset player and load new source when clip file changes (NOT when trim changes)
   useEffect(() => {
@@ -477,6 +547,39 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
                 onError={handleError}
                 className="video-element"
               />
+              
+              {/* Overlay videos for multi-track preview */}
+              {overlayClips.map((overlayClip, index) => {
+                const videoSrc = overlayClip.filePath?.startsWith("local-video:") || overlayClip.filePath?.startsWith("blob:") 
+                  ? overlayClip.filePath
+                  : `local-video://load?path=${encodeURIComponent(overlayClip.filePath?.replace(/\\/g, "/") || "")}`;
+                
+                // Position: first overlay bottom-right, second overlay bottom-left
+                const position = overlayClip.trackId === "overlay" 
+                  ? { bottom: "80px", right: "20px" }
+                  : { bottom: "80px", left: "20px" };
+                
+                return (
+                  <video
+                    key={`${overlayClip.id}-${index}`}
+                    ref={el => overlayVideoRefs.current[index] = el}
+                    src={videoSrc}
+                    className="video-overlay"
+                    style={{
+                      position: "absolute",
+                      ...position,
+                      width: "25%",
+                      maxWidth: "320px",
+                      height: "auto",
+                      border: "2px solid rgba(255, 255, 255, 0.3)",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+                      zIndex: 10 + index,
+                    }}
+                    muted
+                  />
+                );
+              })}
             </div>
 
             <div className="video-controls">

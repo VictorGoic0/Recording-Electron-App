@@ -433,9 +433,9 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
         {/* Fixed Track Labels Column */}
         <div className="track-labels-column">
           <div className="track-label-spacer"></div>
-          <div className="track-label-item">MAIN</div>
-          <div className="track-label-item">OVERLAY</div>
-          <div className="track-label-item">OVERLAY 2</div>
+          <div className={`track-label-item ${draggedOverTrack === "main" ? "active" : ""}`}>MAIN</div>
+          <div className={`track-label-item ${draggedOverTrack === "overlay" ? "active" : ""}`}>OVERLAY</div>
+          <div className={`track-label-item ${draggedOverTrack === "overlay2" ? "active" : ""}`}>OVERLAY 2</div>
         </div>
 
         {/* Scrollable Timeline Section */}
