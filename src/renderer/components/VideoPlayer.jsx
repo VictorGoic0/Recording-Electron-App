@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import "./VideoPlayer.css";
 
 /**
@@ -236,7 +236,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
     }
   }, []);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     if (!videoRef.current || !selectedClip) return;
 
     if (isPlaying) {
@@ -253,7 +253,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
       });
       setIsPlaying(true);
     }
-  };
+  }, [selectedClip, isPlaying]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -329,7 +329,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedClip, isPlaying, duration, volume, isMuted, togglePlayPause]);
+  }, [selectedClip, isPlaying, duration, volume, isMuted, togglePlayPause]);  // togglePlayPause is now stable with useCallback
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {

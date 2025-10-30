@@ -862,12 +862,21 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
   - All timeline edits (trim, split, duration) persist through any reposition operation ✓
 
 - [x] 14. FIX BUG: Clip drops in wrong position when timeline scrolled (CRITICAL) ✅
+
   - Issue: Clips dropped far to the right when timeline scrollbar was scrolled right ✓ FIXED
   - Root cause: Using track's bounding rect instead of container's ✓ IDENTIFIED
   - Problem: trackRect.left was already accounting for scroll in viewport ✓
   - Solution: Calculate mouse position relative to scrollable container ✓
   - New logic: mouseXInViewport + scrollLeft = accurate position in full timeline ✓
   - Now works correctly at any scroll position ✓
+
+- [x] 15. FIX BUG: Video controls become unresponsive (CRITICAL - Intermittent) ✅
+  - Issue: Play/pause, scrubbing, timeline playhead all stopped responding ✓ FIXED
+  - Root cause: togglePlayPause function recreated on every render ✓ IDENTIFIED
+  - Problem: Caused keyboard event listener useEffect to re-run constantly ✓
+  - Solution: Wrapped togglePlayPause in useCallback with proper dependencies ✓
+  - Result: Function is now stable, event listeners set up correctly ✓
+  - Intermittent behavior explained: Race condition from listener churn ✓
 
 **PR Completion Criteria:**
 
