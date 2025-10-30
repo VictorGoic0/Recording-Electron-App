@@ -4,58 +4,47 @@
 
 **Phase**: Final Features (Wednesday Deadline)
 **Date**: October 30, 2025
-**Current PR**: PR #8 - Webcam Recording (2/7 subtasks complete, working on #3-4)
+**Current PR**: PR #9 - Multi-Track Timeline & Split Functionality (Starting subtask 1)
 
 ## What I'm Working On Right Now
 
-MVP is complete! PRs #1-6 fully functional. Screen recording (PR #7) is complete with all features working. Currently implementing webcam recording with camera selection and MediaRecorder setup complete.
+MVP complete! PRs #1-8 fully functional including both screen and webcam recording. Now implementing multi-track timeline support to enable video overlays and picture-in-picture compositions.
 
 **Current Status:**
-
 - Full video editing pipeline working (import, timeline, trim, export)
-- Screen recording with source selection, audio, pause/resume fully functional
-- Webcam recording partially complete - camera selection and MediaRecorder setup done
+- Screen recording fully functional with all features
+- Webcam recording fully functional with camera settings
 - WebM duration metadata fix applied (FFmpeg post-processing)
 - Error boundary preventing app crashes
 - All recordings auto-import to media library
 
-## Recent Changes (PR #7 & #8)
+## Recent Changes (PR #8 - COMPLETE)
 
-**PR #7 - Screen Recording (COMPLETE):**
-
-- Screen source picker with thumbnails (separate Screens/Windows sections)
-- MediaRecorder with VP9/VP8 codec support
-- Recording controls (Start/Stop/Pause/Resume, timer)
-- Microphone audio toggle with visual feedback
-- Auto-save to Videos folder with timestamp filenames
-- FFmpeg post-processing to fix WebM duration metadata
-- Auto-import to media library with thumbnails
-- Error handling and toast notifications
-
-**PR #8 - Webcam Recording (IN PROGRESS - 2/7 complete):**
-
+**PR #8 - Webcam Recording (COMPLETE - all 7 subtasks):**
 - ✅ Camera picker with live previews
 - ✅ MediaRecorder setup with getUserMedia
 - ✅ Combined webcam video + microphone audio
-- ✅ Dynamic filename generation
-- 🔄 Working on: Webcam preview before recording (subtask 3)
-- 🔄 Working on: Recording controls consistency (subtask 4)
+- ✅ Webcam preview before recording with live video
+- ✅ Recording controls consistent with screen recording
+- ✅ Comprehensive error handling (6 error types: permission, not found, in use, overconstrained, abort, generic)
+- ✅ Camera settings: resolution (720p/1080p), frame rate (30fps/60fps), mirror toggle
+- ✅ Live preview updates when settings change
+- ✅ Auto-save with FFmpeg post-processing
+- ✅ Cancel button to exit preview
 
-**Major Bug Fixes:**
-
-- Fixed "NaN" duration display (parse strings, validate finite numbers)
-- Fixed WebM duration metadata (FFmpeg remux)
-- Created ErrorBoundary component
-- Fixed cleanup effect dependencies
-- Removed problematic useCallback wrappers
+**Key Technical Implementation:**
+- Separate hooks for screen vs webcam recording
+- Shared UI components for recording controls
+- Dynamic stream recreation on settings change
+- CSS transform for mirror effect
+- Fixed-width dropdowns with proper text visibility
 
 ## Immediate Next Steps
 
-1. **Subtask 3**: Show webcam preview before recording starts
-2. **Subtask 4**: Ensure recording controls match screen recording flow
-3. **Remaining PR #8 subtasks**: Error handling polish, camera settings (stretch)
-4. **PR #9**: Multi-track timeline and split functionality
-5. **PR #10**: Final polish and packaging
+1. **PR #9 Subtask 1**: Expand timeline to support 2-3 tracks (IN PROGRESS)
+2. **Remaining PR #9**: Overlay rendering, split functionality, track management
+3. **PR #10**: Final polish and packaging
+4. **Demo Video**: Showcase all features
 
 ## Active Decisions
 
@@ -63,25 +52,21 @@ MVP is complete! PRs #1-6 fully functional. Screen recording (PR #7) is complete
 - **Duration Fix**: Post-process all WebM files with FFmpeg remux
 - **Error Strategy**: Toast notifications + Error Boundary for crashes
 - **Codec Priority**: VP9 → VP8 → WebM fallback
-- **File Organization**: Separate filenames for screen vs webcam recordings
+- **Multi-Track**: 2-3 tracks with overlay support, track selection UI
 
 ## Blockers/Challenges
 
 - None currently
-- Recording features progressing smoothly
+- Recording features complete, moving to timeline enhancements
 
 ## Active Files
 
-- `src/renderer/components/MediaLibrary.jsx` - Recording UI and controls
-- `src/renderer/hooks/useWebcamRecording.js` - Webcam recording logic
-- `src/renderer/hooks/useScreenRecording.js` - Screen recording logic
-- `src/renderer/components/CameraPicker.jsx` - Camera selection modal
-- `src/main/services/ffmpegService.js` - Video processing and duration fix
+- `src/renderer/components/Timeline.jsx` - Timeline UI (multi-track implementation)
+- `src/renderer/context/TimelineContext.jsx` - Timeline state management
 - `tasks.md` - Progress tracking
 
 ## Current Priorities
 
-1. **Complete PR #8** - Webcam recording (subtasks 3-7)
-2. **PR #9** - Multi-track & split (Wednesday deadline)
-3. **PR #10** - Polish & packaging
-4. **Demo Video** - Showcase all features
+1. **PR #9** - Multi-track & split (Wednesday deadline)
+2. **PR #10** - Polish & packaging
+3. **Demo Video** - Showcase all features

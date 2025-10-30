@@ -133,6 +133,10 @@
   background: #1e1e1e;
 }
 
+.track-overlay2 {
+  background: #1d1d1d;
+}
+
 .track:hover {
   background-color: #252525;
 }

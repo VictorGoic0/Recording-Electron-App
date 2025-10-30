@@ -21,6 +21,7 @@ export const TimelineProvider = ({ children }) => {
   const [tracks, setTracks] = useState([
     { id: "main", name: "Main", clips: [] },
     { id: "overlay", name: "Overlay", clips: [] },
+    { id: "overlay2", name: "Overlay 2", clips: [] },
   ]);
 
   // Clip structure: { id, fileId, startTime, endTime, position, track }

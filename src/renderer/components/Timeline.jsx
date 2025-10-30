@@ -435,6 +435,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
           <div className="track-label-spacer"></div>
           <div className="track-label-item">MAIN</div>
           <div className="track-label-item">OVERLAY</div>
+          <div className="track-label-item">OVERLAY 2</div>
         </div>
 
         {/* Scrollable Timeline Section */}
@@ -494,6 +495,25 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
               >
                 {/* Render clips for Overlay track */}
                 {tracks.find((t) => t.id === "overlay")?.clips.map((clip) => (
+                  <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
+                ))}
+                <div 
+                  className="playhead-line" 
+                  style={{ left: `${playhead * 100}%` }}
+                  onMouseDown={handlePlayheadMouseDown}
+                />
+              </div>
+            </div>
+
+            <div className="track track-overlay2">
+              <div 
+                className={`track-content ${draggedOverTrack === "overlay2" ? "drag-over" : ""}`}
+                onDragOver={(e) => handleTrackDragOver(e, "overlay2")}
+                onDragLeave={handleTrackDragLeave}
+                onDrop={(e) => handleTrackDrop(e, "overlay2")}
+              >
+                {/* Render clips for Overlay 2 track */}
+                {tracks.find((t) => t.id === "overlay2")?.clips.map((clip) => (
                   <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
                 ))}
                 <div 

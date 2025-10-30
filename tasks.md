@@ -648,12 +648,13 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 
 ### Subtasks
 
-- [ ] 1. Expand timeline to support 2-3 tracks
+- [x] 1. Expand timeline to support 2-3 tracks
 
   - Track 1: Main video
   - Track 2: Overlay (e.g., webcam PiP)
-  - Track 3: Additional overlay (optional)
-  - Visual stacking (Track 2 appears above Track 1)
+  - Track 3: Additional overlay (Overlay 2)
+  - Visual stacking (Track 2 and 3 appear above Track 1)
+  - All 3 tracks functional with drag & drop support
 
 - [ ] 2. Update drag-and-drop to support track selection
 
