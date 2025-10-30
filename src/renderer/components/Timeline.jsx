@@ -7,9 +7,10 @@ import ExportModal from "./ExportModal";
  * Clip Component with Trim Handles
  * Individual clip on the timeline with left/right trim handles
  */
-function TimelineClip({ clip, zoom, scale, maxDuration = 60, playhead, maxTimelineDuration }) {
-  const { updateClipTrim, updateClipPosition, selectTimelineClip, selectedTimelineClipId } = useTimeline();
+function TimelineClip({ clip, zoom, scale, maxDuration = 60, playhead, maxTimelineDuration, onClipDrop }) {
+  const { updateClipTrim, updateClipPosition, selectTimelineClip, selectedTimelineClipId, removeClipFromTimeline } = useTimeline();
   const [isTrimming, setIsTrimming] = useState(null); // 'left' or 'right'
+  const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const dragStartRef = useRef(null);
   
@@ -112,6 +113,30 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60, playhead, maxTimeli
     selectTimelineClip(clip.id);
   };
 
+  // Handle clip drag start (for repositioning)
+  const handleDragStart = (e) => {
+    // Don't allow dragging if trimming
+    if (isTrimming) {
+      e.preventDefault();
+      return;
+    }
+
+    setIsDragging(true);
+    
+    // Store clip data for drag-and-drop
+    const clipData = {
+      ...clip,
+      isRepositioning: true, // Flag to indicate this is a reposition, not a new drop
+    };
+    
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/json', JSON.stringify(clipData));
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
   // Calculate if playhead is within this clip for split indicator
   const trimStart = clip.trimStart || 0;
   const trimEnd = clip.trimEnd || clip.duration;
@@ -127,12 +152,16 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60, playhead, maxTimeli
 
   return (
     <div
-      className={clipClassName}
+      className={`${clipClassName} ${isDragging ? 'dragging' : ''}`}
       style={{
         left: `${(displayPosition / maxDuration) * zoom * 100}%`,
         width: `${(displayWidth / maxDuration) * zoom * 100}%`,
+        opacity: isDragging ? 0.5 : 1,
       }}
       title={`${clip.filename} (${displayWidth.toFixed(1)}s)`}
+      draggable={!isTrimming}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onClick={handleClipClick}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
@@ -330,7 +359,27 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       // Convert pixel position to time
       const position = Math.max(0, Math.min(maxTimelineDuration, (relativeX / actualTimelineWidth) * maxTimelineDuration));
 
-      addClipToTimeline(clip, trackId, position);
+      // Check if this is a repositioning operation (clip already on timeline)
+      if (clip.isRepositioning) {
+        // Remove clip from its current position/track
+        removeClipFromTimeline(clip.id, clip.track);
+        
+        // Add it to the new position/track
+        // Need to preserve trim settings
+        const repositionedClip = {
+          id: clip.fileId, // Use original file ID for new clip
+          filePath: clip.filePath,
+          filename: clip.filename,
+          duration: clip.duration,
+          trimStart: clip.trimStart,
+          trimEnd: clip.trimEnd,
+        };
+        
+        addClipToTimeline(repositionedClip, trackId, position);
+      } else {
+        // New clip from media library
+        addClipToTimeline(clip, trackId, position);
+      }
     } catch (error) {
       console.error("Failed to parse dropped clip data:", error);
     }

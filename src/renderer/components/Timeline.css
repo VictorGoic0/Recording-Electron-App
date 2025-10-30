@@ -187,7 +187,7 @@
   background: var(--accent-primary);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
-  cursor: pointer;
+  cursor: move;
   transition: all 0.2s ease;
   overflow: hidden;
   z-index: 5;
@@ -196,6 +196,11 @@
 .timeline-clip:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.timeline-clip.dragging {
+  cursor: grabbing;
+  z-index: 100;
 }
 
 .timeline-clip.selected {

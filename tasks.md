@@ -826,20 +826,29 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
   - Troubleshooting section ✓
   - Technologies used listed ✓
 
-- [ ] 10. Record demo video (3-5 minutes)
+- [x] 10. Record demo video (3-5 minutes) ✅
 
-  - Show app launch
-  - Import clips
-  - Record screen or webcam
-  - Edit on timeline (trim, split, arrange)
-  - Export final video
-  - Show exported video playing
+  - Show app launch ✓
+  - Import clips ✓
+  - Record screen or webcam ✓
+  - Edit on timeline (trim, split, arrange) ✓
+  - Export final video ✓
+  - Show exported video playing ✓
 
-- [ ] 11. Prepare final submission
-  - Push all code to GitHub
-  - Upload packaged app with download link
-  - Upload demo video to YouTube or include in repo
-  - Double-check all submission requirements met
+- [x] 11. Prepare final submission ✅
+
+  - Push all code to GitHub ✓
+  - Upload packaged app with download link ✓
+  - Upload demo video to YouTube or include in repo ✓
+  - Double-check all submission requirements met ✓
+
+- [x] 12. Drag-to-reposition clips on timeline (BONUS - MVP Critical) ✅
+  - Clips are now draggable within and between tracks ✓
+  - Click and drag any clip to move it to a different time position ✓
+  - Drag clips between main, overlay, and overlay 2 tracks ✓
+  - Preserves trim settings when repositioning ✓
+  - Visual feedback during drag (opacity, cursor change) ✓
+  - Works seamlessly with existing trim and split functionality ✓
 
 **PR Completion Criteria:**
 
