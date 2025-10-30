@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./MediaLibrary.css";
 import ScreenSourcePicker from "./ScreenSourcePicker";
+import CameraPicker from "./CameraPicker";
 import Toast from "./Toast";
 import { useScreenRecording } from "../hooks/useScreenRecording";
 
@@ -23,6 +24,7 @@ function MediaLibrary({
   const [contextMenu, setContextMenu] = useState(null);
   const [isRecordDropdownOpen, setIsRecordDropdownOpen] = useState(false);
   const [isScreenSourcePickerOpen, setIsScreenSourcePickerOpen] = useState(false);
+  const [isCameraPickerOpen, setIsCameraPickerOpen] = useState(false);
   const [selectedSource, setSelectedSource] = useState(null);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdown, setCountdown] = useState(3);
@@ -74,8 +76,7 @@ function MediaLibrary({
     if (option === "screen") {
       setIsScreenSourcePickerOpen(true);
     } else if (option === "webcam") {
-      // TODO: Implement webcam recording
-      console.log("Webcam recording not yet implemented");
+      setIsCameraPickerOpen(true);
     } else if (option === "both") {
       // TODO: Implement both screen and webcam recording
       console.log("Both screen and webcam recording not yet implemented");
@@ -212,6 +213,21 @@ function MediaLibrary({
 
   const handleScreenSourcePickerClose = () => {
     setIsScreenSourcePickerOpen(false);
+  };
+
+  const handleCameraSelect = (camera) => {
+    console.log("Camera selected:", camera);
+    setSelectedSource({
+      id: camera.deviceId,
+      name: camera.label || `Camera ${camera.deviceId}`,
+      type: "camera",
+      device: camera
+    });
+    setIsCameraPickerOpen(false);
+  };
+
+  const handleCameraPickerClose = () => {
+    setIsCameraPickerOpen(false);
   };
 
   const handleClipClick = (clip) => {
@@ -549,6 +565,13 @@ function MediaLibrary({
         isOpen={isScreenSourcePickerOpen}
         onSelect={handleScreenSourceSelect}
         onClose={handleScreenSourcePickerClose}
+      />
+
+      {/* Camera Picker Modal */}
+      <CameraPicker
+        isOpen={isCameraPickerOpen}
+        onSelect={handleCameraSelect}
+        onClose={handleCameraPickerClose}
       />
     </aside>
   );

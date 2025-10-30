@@ -577,7 +577,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 
 ### Subtasks
 
-- [ ] 1. Implement camera source selection
+- [x] 1. Implement camera source selection
 
   - Use `navigator.mediaDevices.enumerateDevices()` to list cameras
   - Display camera picker dropdown
