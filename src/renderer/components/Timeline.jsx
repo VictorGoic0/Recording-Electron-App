@@ -494,24 +494,30 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     console.log(`Deleted clip ${clipToDelete.filename} from ${trackId} track`);
   };
 
-  // Keyboard event handler for Delete/Backspace keys
+  // Keyboard event handler for Delete/Backspace and Ctrl+K
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // Only handle Delete/Backspace when timeline is in focus
-      // and not typing in an input field
+      // Only handle keyboard shortcuts when not typing in an input field
       if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
         return;
       }
 
+      // Delete/Backspace: Delete selected clip
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
         handleDeleteClip();
+      }
+
+      // Ctrl+K or Cmd+K: Split clip at playhead
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault();
+        handleSplit(event);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedTimelineClipId, tracks]);
+  }, [selectedTimelineClipId, tracks, playhead, maxTimelineDuration]);
 
   return (
     <div className="timeline-component">

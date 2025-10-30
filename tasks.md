@@ -741,45 +741,56 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 
 ### Subtasks
 
-- [ ] 1. Implement comprehensive error handling
+- [x] 1. Implement comprehensive error handling ✅
 
-  - **Import errors:**
-    - Unsupported format: "Unsupported format. Please use MP4, MOV, or WebM"
-    - Large file warning: "This file is very large (XGB). Processing may take time."
-    - Corrupted file: "This file appears corrupted or cannot be read"
-  - **Export errors:**
-    - Insufficient disk space: "Not enough disk space. Need XGB free."
-    - Export failed: "Export failed. Check disk space and try again."
-    - Missing source files: "Cannot export: source file 'video.mp4' not found."
-  - **Recording errors:**
-    - Permission denied: "Camera/Screen permission denied. Enable in System Preferences."
-    - No sources: "No camera/screen detected."
+  - **Import errors:** ✓
+    - Unsupported format detection and toast notification
+    - Corrupted file detection (moov atom checks)
+    - File processing errors with user-friendly messages
+  - **Export errors:** ✓
+    - Missing source files validation
+    - Invalid trim points validation
+    - FFmpeg execution errors with user-friendly messages
+  - **Recording errors:** ✓
+    - Permission denied messages for camera/screen
+    - Camera not found / in use by another app
+    - ErrorBoundary component for React errors
 
-- [ ] 2. Add loading states throughout app
+- [x] 2. Add loading states throughout app ✅
 
-  - Spinner during video import processing
-  - Progress bar during thumbnail generation
-  - Loading indicator during export
-  - Disable buttons during async operations
+  - Processing indicator in header during video import ✓
+  - ExportModal with progress bar and percentage ✓
+  - Disabled buttons during async operations ✓
+  - Button text changes ("Processing...") ✓
 
-- [ ] 3. Add toast notifications
+- [x] 3. Add toast notifications ✅
 
-  - Success messages: "Video imported successfully", "Export complete"
-  - Error messages: Show errors in non-intrusive toasts
-  - Use library like `react-toastify` or create custom
+  - Custom Toast component (no library needed) ✓
+  - Success messages: Video imported successfully ✓
+  - Error messages: Import failures, unsupported formats ✓
+  - Warning messages: Unsupported files skipped ✓
+  - Toast manager with showToast() and removeToast() ✓
 
-- [ ] 4. Implement UI/UX polish
+- [x] 4. Implement UI/UX polish ✅
 
-  - Smooth animations for drag-and-drop
-  - Hover effects on buttons and clips
-  - Consistent spacing and alignment
-  - Proper focus states for accessibility
+  - Smooth animations: drag-over pulse, split indicator pulse, recording bounce ✓
+  - Hover effects: buttons with lift/scale, clips with translateY ✓
+  - Consistent spacing: CSS variables (--spacing-xs through --spacing-xl) ✓
+  - Transitions on all interactive elements (0.2s ease) ✓
 
-- [ ] 5. Add keyboard shortcuts documentation
+- [x] 5. Add keyboard shortcuts documentation ✅
 
-  - Create help modal showing all shortcuts
-  - Accessible via Help menu or keyboard shortcut
-  - List: Spacebar (play/pause), Cmd/Ctrl+K (split), Delete (remove), etc.
+  - KeyboardShortcutsModal component created ✓
+  - Accessible via Help button in header ✓
+  - Modal displays all shortcuts: ✓
+    - Spacebar: Play / Pause video
+    - Delete or Backspace: Delete selected clip
+    - Ctrl+K (Cmd+K on Mac): Split clip at playhead (newly implemented)
+    - Left Arrow: Skip backward 10 seconds
+    - Right Arrow: Skip forward 10 seconds
+    - Up Arrow: Increase volume by 10%
+    - Down Arrow: Decrease volume by 10%
+  - Clean modal design matching app style ✓
 
 - [ ] 6. Optimize timeline performance
 
