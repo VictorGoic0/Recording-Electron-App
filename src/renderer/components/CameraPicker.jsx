@@ -69,11 +69,17 @@ function CameraPicker({ isOpen, onSelect, onClose }) {
       console.error("Failed to enumerate cameras:", err);
       
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-        setError("Camera permission denied. Please allow camera access in your browser settings.");
-      } else if (err.name === "NotFoundError") {
-        setError("No camera detected. Please connect a camera and try again.");
+        setError("Camera permission denied. Please allow camera access in your system settings and try again.");
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        setError("No camera detected. Please connect a camera to your computer and try again.");
+      } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+        setError("Camera is in use by another application. Please close other apps using the camera and try again.");
+      } else if (err.name === "OverconstrainedError") {
+        setError("Camera does not support the requested settings. Please try a different camera.");
+      } else if (err.name === "AbortError") {
+        setError("Camera access was interrupted. Please try again.");
       } else {
-        setError(`Failed to access cameras: ${err.message}`);
+        setError(`Failed to access camera: ${err.message || "Unknown error"}. Please check your camera connection and permissions.`);
       }
       
       setLoading(false);
@@ -97,6 +103,19 @@ function CameraPicker({ isOpen, onSelect, onClose }) {
       }));
     } catch (err) {
       console.error(`Failed to load preview for ${camera.label}:`, err);
+      
+      // Show specific error messages for preview failures
+      let errorMessage = "";
+      if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+        errorMessage = `${camera.label || "Camera"} is in use by another application.`;
+      } else if (err.name === "NotAllowedError") {
+        errorMessage = `Permission denied for ${camera.label || "camera"}.`;
+      } else {
+        errorMessage = `Could not load preview for ${camera.label || "camera"}.`;
+      }
+      
+      // Store error state for this camera (optional: could show in UI)
+      console.warn(errorMessage);
     }
   };
 

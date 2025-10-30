@@ -32,6 +32,11 @@ function MediaLibrary({
   const [notification, setNotification] = useState(null);
   const [webcamPreviewStream, setWebcamPreviewStream] = useState(null);
   const webcamPreviewRef = useRef(null);
+  const [cameraSettings, setCameraSettings] = useState({
+    resolution: "720p", // 720p or 1080p
+    frameRate: 30, // 30 or 60
+    mirror: false, // horizontal flip
+  });
 
   // Screen recording hook
   const screenRecording = useScreenRecording();
@@ -120,11 +125,12 @@ function MediaLibrary({
         includeMicrophone: isMicEnabled,
       };
 
-      // Add webcam-specific options
+      // Add webcam-specific options with user settings
       if (selectedSource.type === "camera") {
-        recordingOptions.width = 1280;
-        recordingOptions.height = 720;
-        recordingOptions.frameRate = 30;
+        const resolution = cameraSettings.resolution === "1080p" ? { width: 1920, height: 1080 } : { width: 1280, height: 720 };
+        recordingOptions.width = resolution.width;
+        recordingOptions.height = resolution.height;
+        recordingOptions.frameRate = cameraSettings.frameRate;
       }
 
       await startRecording(selectedSource.id, recordingOptions);
@@ -273,13 +279,27 @@ function MediaLibrary({
   const handleCameraSelect = async (camera) => {
     console.log("Camera selected:", camera);
     
-    // Start preview stream for the selected camera
+    // Start preview stream for the selected camera with current settings
+    await updateCameraPreview(camera, cameraSettings);
+  };
+
+  const updateCameraPreview = async (camera, settings) => {
+    // Stop existing preview stream if any
+    if (webcamPreviewStream) {
+      webcamPreviewStream.getTracks().forEach(track => track.stop());
+      setWebcamPreviewStream(null);
+    }
+
+    // Determine resolution
+    const resolution = settings.resolution === "1080p" ? { width: 1920, height: 1080 } : { width: 1280, height: 720 };
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           deviceId: { exact: camera.deviceId },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: resolution.width },
+          height: { ideal: resolution.height },
+          frameRate: { ideal: settings.frameRate }
         }
       });
       
@@ -298,12 +318,37 @@ function MediaLibrary({
       }
     } catch (error) {
       console.error("Failed to start webcam preview:", error);
-      showNotification("Failed to access camera. Please check permissions.", "error");
+      
+      // Show specific error messages
+      let errorMessage = "Failed to access camera.";
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        errorMessage = "Camera permission denied. Please allow camera access in your system settings.";
+      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+        errorMessage = "Camera not found. Please check your camera connection.";
+      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+        errorMessage = "Camera is in use by another application. Please close other apps and try again.";
+      } else if (error.name === "OverconstrainedError") {
+        errorMessage = "Camera does not support the requested settings. Try a different camera or lower settings.";
+      } else if (error.name === "AbortError") {
+        errorMessage = "Camera access was interrupted. Please try again.";
+      }
+      
+      showNotification(errorMessage, "error");
     }
   };
 
   const handleCameraPickerClose = () => {
     setIsCameraPickerOpen(false);
+  };
+
+  const handleCameraSettingChange = async (setting, value) => {
+    const newSettings = { ...cameraSettings, [setting]: value };
+    setCameraSettings(newSettings);
+    
+    // If we have a selected camera and preview, update the preview with new settings
+    if (selectedSource?.type === "camera" && selectedSource.device) {
+      await updateCameraPreview(selectedSource.device, newSettings);
+    }
   };
 
   const handleClipClick = (clip) => {
@@ -535,8 +580,45 @@ function MediaLibrary({
                   muted
                   playsInline
                   className="webcam-preview"
+                  style={{ transform: cameraSettings.mirror ? 'scaleX(-1)' : 'none' }}
                 />
                 <div className="preview-label">Preview</div>
+              </div>
+            )}
+            
+            {/* Camera Settings (shown before recording starts) */}
+            {selectedSource.type === "camera" && !isRecording && (
+              <div className="camera-settings">
+                <div className="camera-setting">
+                  <label>Resolution:</label>
+                  <select 
+                    value={cameraSettings.resolution} 
+                    onChange={(event) => handleCameraSettingChange("resolution", event.target.value)}
+                  >
+                    <option value="720p">720p (1280x720)</option>
+                    <option value="1080p">1080p (1920x1080)</option>
+                  </select>
+                </div>
+                <div className="camera-setting">
+                  <label>Frame Rate:</label>
+                  <select 
+                    value={cameraSettings.frameRate} 
+                    onChange={(event) => handleCameraSettingChange("frameRate", parseInt(event.target.value))}
+                  >
+                    <option value="30">30 fps</option>
+                    <option value="60">60 fps</option>
+                  </select>
+                </div>
+                <div className="camera-setting">
+                  <label>
+                    <input 
+                      type="checkbox" 
+                      checked={cameraSettings.mirror} 
+                      onChange={(event) => handleCameraSettingChange("mirror", event.target.checked)}
+                    />
+                    <span>Mirror video</span>
+                  </label>
+                </div>
               </div>
             )}
             

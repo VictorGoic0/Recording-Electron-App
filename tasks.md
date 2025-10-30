@@ -615,16 +615,21 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Add to media library automatically
   - Shared logic with screen recording
 
-- [ ] 6. Handle webcam errors
+- [x] 6. Handle webcam errors
 
-  - No camera detected: Show message
-  - Permission denied: Guide user to settings
-  - Camera in use by another app: Show error
+  - No camera detected: Show specific error message
+  - Permission denied: Guide user to system settings
+  - Camera in use by another app: Show helpful error message
+  - Overconstrained settings: Suggest trying different camera
+  - Abort/interrupt errors: Prompt to retry
+  - Enhanced error messages in CameraPicker, MediaLibrary, and useWebcamRecording hook
 
-- [ ] 7. Add camera settings (stretch)
-  - Resolution options (720p, 1080p)
-  - Frame rate options (30fps, 60fps)
-  - Mirror video toggle (flip horizontal)
+- [x] 7. Add camera settings (stretch)
+  - Resolution options (720p, 1080p) with live preview update
+  - Frame rate options (30fps, 60fps) with live preview update
+  - Mirror video toggle (flip horizontal) with CSS transform
+  - Settings applied to both preview and recording
+  - Settings UI shown before recording starts
 
 **PR Completion Criteria:**
 

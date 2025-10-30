@@ -24,14 +24,14 @@
 
 ### What's In Progress
 
-- 🔄 PR #8: Webcam Recording (2/7 complete)
+- ✅ PR #8: Webcam Recording (COMPLETE - all 7 subtasks)
   - ✅ Subtask 1: Camera source selection with live previews
   - ✅ Subtask 2: MediaRecorder setup for webcam
-  - 🔄 Subtask 3: Show webcam preview before recording
-  - 🔄 Subtask 4: Recording controls (reusing screen recording UI)
-  - ⏳ Subtask 5: Save webcam recording (already working)
-  - ⏳ Subtask 6: Handle webcam errors
-  - ⏳ Subtask 7: Camera settings (stretch goal)
+  - ✅ Subtask 3: Show webcam preview before recording
+  - ✅ Subtask 4: Recording controls consistent with screen recording
+  - ✅ Subtask 5: Save webcam recording with FFmpeg post-processing
+  - ✅ Subtask 6: Enhanced error handling (all error types)
+  - ✅ Subtask 7: Camera settings (resolution, frame rate, mirror)
 
 ### What's Next
 

@@ -651,6 +651,75 @@
   letter-spacing: 0.5px;
 }
 
+/* Camera Settings */
+.camera-settings {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--border-radius-sm);
+  flex-wrap: wrap;
+}
+
+.camera-setting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.camera-setting label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.camera-setting select {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  max-width: 150px;
+}
+
+.camera-setting select option {
+  background: #2a2a2a;
+  color: #ffffff;
+  padding: 6px;
+}
+
+.camera-setting select:hover {
+  border-color: var(--color-primary);
+}
+
+.camera-setting select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+}
+
+.camera-setting input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.camera-setting label span {
+  user-select: none;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .clips-grid {

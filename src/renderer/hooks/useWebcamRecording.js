@@ -147,7 +147,37 @@ export function useWebcamRecording() {
       console.log("Webcam recording started with device:", deviceId);
     } catch (err) {
       console.error("Failed to start webcam recording:", err);
-      setError(err.message || "Failed to start recording");
+
+      // Set specific error messages based on error type
+      let errorMessage = "Failed to start webcam recording.";
+      if (
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
+      ) {
+        errorMessage =
+          "Camera permission denied. Please allow camera access in your system settings.";
+      } else if (
+        err.name === "NotFoundError" ||
+        err.name === "DevicesNotFoundError"
+      ) {
+        errorMessage =
+          "Camera not found. Please check your camera connection and try again.";
+      } else if (
+        err.name === "NotReadableError" ||
+        err.name === "TrackStartError"
+      ) {
+        errorMessage =
+          "Camera is in use by another application. Please close other apps using the camera and try again.";
+      } else if (err.name === "OverconstrainedError") {
+        errorMessage =
+          "Camera does not support the requested settings. Try a different resolution or camera.";
+      } else if (err.name === "AbortError") {
+        errorMessage = "Camera access was interrupted. Please try again.";
+      } else if (err.message) {
+        errorMessage = `Failed to start recording: ${err.message}`;
+      }
+
+      setError(errorMessage);
       setIsRecording(false);
 
       // Clean up streams if they were created
