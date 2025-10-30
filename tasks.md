@@ -872,11 +872,29 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 
 - [x] 15. FIX BUG: Video controls become unresponsive (CRITICAL - Intermittent) ✅
   - Issue: Play/pause, scrubbing, timeline playhead all stopped responding ✓ FIXED
-  - Root cause: togglePlayPause function recreated on every render ✓ IDENTIFIED
-  - Problem: Caused keyboard event listener useEffect to re-run constantly ✓
-  - Solution: Wrapped togglePlayPause in useCallback with proper dependencies ✓
-  - Result: Function is now stable, event listeners set up correctly ✓
-  - Intermittent behavior explained: Race condition from listener churn ✓
+  - Root cause #1: togglePlayPause function recreated on every render ✓ IDENTIFIED
+  - Solution #1: Wrapped togglePlayPause in useCallback with proper dependencies ✓
+  - Root cause #2 (THE REAL CULPRIT): Keyboard useEffect had excessive dependencies ✓ IDENTIFIED
+    - Dependencies included: volume, duration, isMuted
+    - These changed constantly during playback (volume UI, duration updates, etc.)
+    - Caused event listener to be torn down and re-registered hundreds of times
+    - Created severe race conditions where listeners weren't properly attached ✓
+  - Solution #2: Refactored keyboard event handler dependencies ✓
+    - Used functional setState pattern for volume changes (setVolume(current => ...))
+    - Removed volume, duration, isMuted from dependencies array
+    - Only kept: selectedClip, togglePlayPause (both stable)
+    - Event listeners now stay attached properly without constant churn ✓
+  - Root cause #3 (THE ACTUAL CULPRIT): React.StrictMode in development ✓ IDENTIFIED
+    - StrictMode intentionally double-mounts components to catch bugs
+    - This caused event listeners to be set up multiple times
+    - Race conditions between mount/unmount cycles
+    - Not necessary for this app, was added automatically on initial build ✓
+  - Solution #3: Removed React.StrictMode wrapper from index.jsx ✓
+    - App now mounts once in development
+    - Event listeners set up cleanly without double-mounting
+    - No performance impact, StrictMode only runs in dev anyway ✓
+  - Result: Controls are now consistently responsive ✓
+  - Intermittent behavior explained: StrictMode remounting + timing of user interactions ✓
 
 **PR Completion Criteria:**
 

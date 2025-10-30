@@ -237,6 +237,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
   }, []);
 
   const togglePlayPause = useCallback(() => {
+    console.log("toggle play pause")
     if (!videoRef.current || !selectedClip) return;
 
     if (isPlaying) {
@@ -275,6 +276,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
         case "ArrowLeft":
           e.preventDefault();
           // Skip backward 10 seconds
+          console.log("arrow left")
           if (videoRef.current && videoRef.current.duration > 0) {
             const currentTime = videoRef.current.currentTime;
             const newTime = Math.max(currentTime - 10, 0);
@@ -283,6 +285,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
           break;
         case "ArrowRight":
           e.preventDefault();
+          console.log("arrow right")
           // Skip forward 10 seconds
           if (videoRef.current && videoRef.current.duration > 0) {
             const currentTime = videoRef.current.currentTime;
@@ -295,28 +298,32 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
           e.preventDefault();
           // Increase volume
           {
-            const newVolume = Math.min(volume + 0.1, 1);
-            setVolume(newVolume);
-            if (videoRef.current) {
-              videoRef.current.volume = newVolume;
-              if (isMuted) {
+            // Get current volume from state via setVolume callback pattern
+            setVolume((currentVolume) => {
+              const newVolume = Math.min(currentVolume + 0.1, 1);
+              if (videoRef.current) {
+                videoRef.current.volume = newVolume;
                 videoRef.current.muted = false;
-                setIsMuted(false);
               }
-            }
-            localStorage.setItem("videoPlayerVolume", newVolume.toString());
+              setIsMuted(false);
+              localStorage.setItem("videoPlayerVolume", newVolume.toString());
+              return newVolume;
+            });
           }
           break;
         case "ArrowDown":
           e.preventDefault();
           // Decrease volume
           {
-            const newVolume = Math.max(volume - 0.1, 0);
-            setVolume(newVolume);
-            if (videoRef.current) {
-              videoRef.current.volume = newVolume;
-            }
-            localStorage.setItem("videoPlayerVolume", newVolume.toString());
+            // Get current volume from state via setVolume callback pattern
+            setVolume((currentVolume) => {
+              const newVolume = Math.max(currentVolume - 0.1, 0);
+              if (videoRef.current) {
+                videoRef.current.volume = newVolume;
+              }
+              localStorage.setItem("videoPlayerVolume", newVolume.toString());
+              return newVolume;
+            });
           }
           break;
         default:
@@ -329,7 +336,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedClip, isPlaying, duration, volume, isMuted, togglePlayPause]);  // togglePlayPause is now stable with useCallback
+  }, [selectedClip, togglePlayPause]);  // Removed excessive dependencies that caused constant re-registration
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
@@ -359,10 +366,12 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
+      console.log("time update")
       const newTime = videoRef.current.currentTime;
       
       // For timeline clips, constrain playback to trimmed range
       if (isTimelineClip && newTime >= trimEnd) {
+        console.log("time update pause")
         videoRef.current.pause();
         videoRef.current.currentTime = trimEnd;
         setIsPlaying(false);
@@ -466,8 +475,11 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
     } else {
       time = pos * duration;
     }
+
+    console.log("progress bar mouse down", time)
     
     videoRef.current.currentTime = time;
+
     setCurrentTime(time);
   };
 
