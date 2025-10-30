@@ -203,7 +203,7 @@ function App() {
     <div className="app-container">
       <header className="app-header">
         <div className="header-left">
-          <h1>ClipCreate</h1>
+          <h1>ClipForge</h1>
           <span className="version">v1.0.0</span>
           {isProcessing && (
             <span className="processing-indicator">

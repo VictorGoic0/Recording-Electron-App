@@ -1,4 +1,4 @@
-# System Patterns: ClipCreate
+# System Patterns: ClipForge
 
 ## Architecture Overview
 

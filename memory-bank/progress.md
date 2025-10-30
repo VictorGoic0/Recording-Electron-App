@@ -1,4 +1,4 @@
-# Progress: ClipCreate
+# Progress: ClipForge
 
 ## Current Status: PR #8 In Progress - Webcam Recording (2/7 complete)
 

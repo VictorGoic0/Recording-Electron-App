@@ -1,4 +1,4 @@
-# Active Context: ClipCreate
+# Active Context: ClipForge
 
 ## Current Work Focus
 
@@ -11,6 +11,7 @@
 MVP complete! PRs #1-8 fully functional including both screen and webcam recording. Now implementing multi-track timeline support to enable video overlays and picture-in-picture compositions.
 
 **Current Status:**
+
 - Full video editing pipeline working (import, timeline, trim, export)
 - Screen recording fully functional with all features
 - Webcam recording fully functional with camera settings
@@ -21,6 +22,7 @@ MVP complete! PRs #1-8 fully functional including both screen and webcam recordi
 ## Recent Changes (PR #8 - COMPLETE)
 
 **PR #8 - Webcam Recording (COMPLETE - all 7 subtasks):**
+
 - ✅ Camera picker with live previews
 - ✅ MediaRecorder setup with getUserMedia
 - ✅ Combined webcam video + microphone audio
@@ -33,6 +35,7 @@ MVP complete! PRs #1-8 fully functional including both screen and webcam recordi
 - ✅ Cancel button to exit preview
 
 **Key Technical Implementation:**
+
 - Separate hooks for screen vs webcam recording
 - Shared UI components for recording controls
 - Dynamic stream recreation on settings change

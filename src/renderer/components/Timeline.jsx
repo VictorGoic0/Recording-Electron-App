@@ -407,8 +407,8 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       <div className="panel-header">
         <h2>Timeline</h2>
         <div className="timeline-controls">
-          <button className="btn-icon" title="Export" onClick={handleExport}>
-            📤 Export
+          <button className="btn-export" title="Export" onClick={handleExport}>
+            📤 <span>Export</span>
           </button>
           <button className="btn-icon" title="Zoom In" onClick={() => setZoom(Math.min(zoom + 0.5, 10))}>
             +

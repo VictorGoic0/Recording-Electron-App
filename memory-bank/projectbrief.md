@@ -1,8 +1,8 @@
-# Project Brief: ClipCreate
+# Project Brief: ClipForge
 
 ## Project Overview
 
-ClipCreate is a desktop video editing application built in a 72-hour sprint (October 27-29, 2025) for a portfolio/assignment submission. The goal is to create a functional video editor that can record screen/webcam, import clips, arrange them on a timeline, and export professional-looking videos.
+ClipForge is a desktop video editing application built in a 72-hour sprint (October 27-29, 2025) for a portfolio/assignment submission. The goal is to create a functional video editor that can record screen/webcam, import clips, arrange them on a timeline, and export professional-looking videos.
 
 ## Core Requirements
 

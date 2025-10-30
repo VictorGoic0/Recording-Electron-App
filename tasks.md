@@ -1,8 +1,8 @@
-# ClipCreate - Development Tasks
+# ClipForge - Development Tasks
 
 ## Overview
 
-This document breaks down the ClipCreate project into 10 pull requests (PRs), each with numbered subtasks. Complete PRs 1-6 by Tuesday 10:59 PM CT for MVP, then PRs 7-10 by Wednesday 10:59 PM CT for final submission.
+This document breaks down the ClipForge project into 10 pull requests (PRs), each with numbered subtasks. Complete PRs 1-6 by Tuesday 10:59 PM CT for MVP, then PRs 7-10 by Wednesday 10:59 PM CT for final submission.
 
 ---
 
@@ -856,7 +856,7 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
 - [ ] 1. Add "Save Project" button
 - [ ] 2. Serialize timeline state to JSON
 - [ ] 3. Use `dialog.showSaveDialog()` to choose location
-- [ ] 4. Save JSON file with `.clipcreate` extension
+- [ ] 4. Save JSON file with `.clipforge` extension
 - [ ] 5. Add "Open Project" button
 - [ ] 6. Load JSON file and restore timeline state
 - [ ] 7. Validate all source video files still exist

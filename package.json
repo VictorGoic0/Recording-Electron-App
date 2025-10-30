@@ -1,5 +1,5 @@
 {
-  "name": "clipcreate",
+  "name": "clipforge",
   "version": "1.0.0",
   "description": "Desktop video editing app",
   "main": "src/main/main.js",
@@ -30,8 +30,8 @@
     "vite": "^7.1.12"
   },
   "build": {
-    "appId": "com.clipcreate.app",
-    "productName": "ClipCreate",
+    "appId": "com.clipforge.app",
+    "productName": "ClipForge",
     "files": [
       "src/**/*",
       "dist-renderer/**/*",
