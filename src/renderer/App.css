@@ -1,4 +1,4 @@
-/* ClipCreate - Video Editing App Styles */
+/* ClipForge - Video Editing App Styles */
 
 @import "./components/Toast.css";
 
@@ -351,6 +351,69 @@ button:disabled {
 .btn-icon:hover:not(:disabled) {
   background-color: var(--color-bg-tertiary);
   color: var(--color-text-primary);
+}
+
+/* Export Button */
+.btn-export {
+  background-color: #16a34a;
+  color: #ffffff;
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  border-radius: var(--border-radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-export:hover:not(:disabled) {
+  background-color: #15803d;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-export:active:not(:disabled) {
+  background-color: #14532d;
+  transform: translateY(0);
+}
+
+.btn-export span {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Split Button */
+.btn-split {
+  background-color: var(--bg-tertiary);
+  color: #ffffff;
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-split:hover:not(:disabled) {
+  background-color: #4a4a4a;
+  border-color: var(--color-text-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-split:active:not(:disabled) {
+  background-color: #3a3a3a;
+  transform: translateY(0);
+}
+
+.btn-split span {
+  color: #ffffff;
+  font-weight: 600;
 }
 
 /* ============================================

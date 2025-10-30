@@ -116,4 +116,24 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeAllListeners("export-progress");
     },
   },
+
+  // Screen recording operations
+  recording: {
+    /**
+     * Get available desktop sources (screens and windows) for recording
+     * @param {object} options - Options for source types
+     * @returns {Promise<{success: boolean, sources?: Array, error?: string}>}
+     */
+    getDesktopSources: (options) =>
+      ipcRenderer.invoke("get-desktop-sources", options),
+
+    /**
+     * Save recording to file
+     * @param {ArrayBuffer} buffer - Recording data buffer
+     * @param {string} filename - Filename to save as
+     * @returns {Promise<{success: boolean, filePath?: string, error?: string}>}
+     */
+    saveRecording: (buffer, filename) =>
+      ipcRenderer.invoke("save-recording", buffer, filename),
+  },
 });

@@ -4,6 +4,7 @@ import MediaLibrary from "./components/MediaLibrary";
 import VideoPlayer from "./components/VideoPlayer";
 import Timeline from "./components/Timeline";
 import Toast from "./components/Toast";
+import KeyboardShortcutsModal from "./components/KeyboardShortcutsModal";
 import { useMedia } from "./context/MediaContext";
 import { useTimeline } from "./context/TimelineContext";
 import { v4 as uuidv4 } from "uuid";
@@ -13,6 +14,7 @@ function App() {
   const { playhead, setPlayhead, tracks, zoom, selectedTimelineClip } = useTimeline();
   const [isProcessing, setIsProcessing] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
   // Toast notification helper
   const showToast = (message, type = "info") => {
@@ -120,8 +122,16 @@ function App() {
             ...result.data,
           };
 
+          // Log detailed clip information for debugging
+          console.log(`✓ Successfully processed: ${clip.filename}`, {
+            duration: clip.duration,
+            durationType: typeof clip.duration,
+            durationIsFinite: isFinite(clip.duration),
+            resolution: clip.resolution,
+            fileSize: clip.fileSize
+          });
+
           newClips.push(clip);
-          console.log(`✓ Successfully processed: ${clip.filename}`);
         } else {
           // Check if it's a corrupted file error
           if (result.error.includes("Invalid data") || result.error.includes("moov atom not found")) {
@@ -195,7 +205,7 @@ function App() {
     <div className="app-container">
       <header className="app-header">
         <div className="header-left">
-          <h1>ClipCreate</h1>
+          <h1>ClipForge</h1>
           <span className="version">v1.0.0</span>
           {isProcessing && (
             <span className="processing-indicator">
@@ -204,7 +214,13 @@ function App() {
           )}
         </div>
         <div className="header-right">
-          <button className="btn-secondary btn-small">Help</button>
+          <button 
+            className="btn-secondary btn-small" 
+            onClick={() => setShowKeyboardShortcuts(true)}
+            title="Keyboard Shortcuts"
+          >
+            Help
+          </button>
         </div>
       </header>
 
@@ -214,6 +230,7 @@ function App() {
           <MediaLibrary
             clips={clips}
             onImport={handleImport}
+            onProcessFiles={processImportedFiles}
             onClipSelect={handleClipSelect}
             selectedClipId={selectedClipId}
             onRemoveClip={handleRemoveClip}
@@ -225,6 +242,8 @@ function App() {
           <VideoPlayer 
             selectedMediaClip={selectedClip}
             selectedTimelineClip={selectedTimelineClip}
+            tracks={tracks}
+            playhead={playhead}
             onShowToast={showToast}
             onCurrentTimeChange={setPlayhead}
             timelinePlayhead={playhead}
@@ -248,6 +267,12 @@ function App() {
           />
         ))}
       </div>
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+      />
     </div>
   );
 }

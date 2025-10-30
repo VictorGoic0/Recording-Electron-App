@@ -1,8 +1,8 @@
-# Product Context: ClipCreate
+# Product Context: ClipForge
 
 ## What It Is
 
-ClipCreate is a desktop video editor focused on screen and webcam recording workflows. It enables users to create professional-looking videos through an intuitive timeline interface without cloud dependencies.
+ClipForge is a desktop video editor focused on screen and webcam recording workflows. It enables users to create professional-looking videos through an intuitive timeline interface without cloud dependencies.
 
 ## Why It Exists
 

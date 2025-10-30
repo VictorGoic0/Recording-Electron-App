@@ -7,9 +7,11 @@ import ExportModal from "./ExportModal";
  * Clip Component with Trim Handles
  * Individual clip on the timeline with left/right trim handles
  */
-function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
-  const { updateClipTrim, updateClipPosition, selectTimelineClip, selectedTimelineClipId } = useTimeline();
+function TimelineClip({ clip, zoom, scale, maxDuration = 60, playhead, maxTimelineDuration, onClipDrop }) {
+  const { updateClipTrim, updateClipPosition, selectTimelineClip, selectedTimelineClipId, removeClipFromTimeline } = useTimeline();
   const [isTrimming, setIsTrimming] = useState(null); // 'left' or 'right'
+  const [isDragging, setIsDragging] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const dragStartRef = useRef(null);
   
   // Local visual state during drag (no context updates until release)
@@ -42,55 +44,51 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
     setLocalPosition(clip.position);
   };
 
-  useEffect(() => {
+  // Mouse handlers for trim dragging - THE REACT WAY (will be attached to parent)
+  const handleTrimMouseMove = (e) => {
     if (!isTrimming || !dragStartRef.current) return;
 
-    const handleMouseMove = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
 
-      const initial = dragStartRef.current;
-      const deltaX = e.clientX - initial.mouseX;
-      const secondsDelta = deltaX / scale;
+    const initial = dragStartRef.current;
+    const deltaX = e.clientX - initial.mouseX;
+    const secondsDelta = deltaX / scale;
 
-      if (isTrimming === 'left') {
-        // Trim from start: calculate new values and update LOCAL state only
-        const newTrimStart = Math.max(0, Math.min(initial.trimEnd, initial.trimStart + secondsDelta));
-        const trimDelta = newTrimStart - initial.trimStart;
-        setLocalTrimStart(newTrimStart);
-        setLocalPosition(initial.position + trimDelta);
-      } else if (isTrimming === 'right') {
-        // Trim from end: calculate new value and update LOCAL state only
-        const newTrimEnd = Math.min(initial.duration, Math.max(initial.trimStart, initial.trimEnd + secondsDelta));
-        setLocalTrimEnd(newTrimEnd);
-      }
-    };
+    if (isTrimming === 'left') {
+      // Trim from start: calculate new values and update LOCAL state only
+      const newTrimStart = Math.max(0, Math.min(initial.trimEnd, initial.trimStart + secondsDelta));
+      const trimDelta = newTrimStart - initial.trimStart;
+      setLocalTrimStart(newTrimStart);
+      setLocalPosition(initial.position + trimDelta);
+    } else if (isTrimming === 'right') {
+      // Trim from end: calculate new value and update LOCAL state only
+      const newTrimEnd = Math.min(initial.duration, Math.max(initial.trimStart, initial.trimEnd + secondsDelta));
+      setLocalTrimEnd(newTrimEnd);
+    }
+  };
 
-    const handleMouseUp = () => {
-      // On release, commit final values to context
-      if (isTrimming === 'left') {
-        updateClipTrim(clip.id, clip.track, localTrimStart, null);
-        updateClipPosition(clip.id, clip.track, localPosition);
-      } else if (isTrimming === 'right') {
-        updateClipTrim(clip.id, clip.track, null, localTrimEnd);
-      }
-      
-      // Clean up
-      setIsTrimming(null);
-      dragStartRef.current = null;
-      setLocalTrimStart(null);
-      setLocalTrimEnd(null);
-      setLocalPosition(null);
-    };
+  const handleTrimMouseUp = (e) => {
+    if (!isTrimming) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isTrimming, clip.id, clip.track, scale, localTrimStart, localTrimEnd, localPosition, updateClipTrim, updateClipPosition]);
+    // On release, commit final values to context
+    if (isTrimming === 'left') {
+      updateClipTrim(clip.id, clip.track, localTrimStart, null);
+      updateClipPosition(clip.id, clip.track, localPosition);
+    } else if (isTrimming === 'right') {
+      updateClipTrim(clip.id, clip.track, null, localTrimEnd);
+    }
+    
+    // Clean up
+    setIsTrimming(null);
+    dragStartRef.current = null;
+    setLocalTrimStart(null);
+    setLocalTrimEnd(null);
+    setLocalPosition(null);
+  };
 
   // Use local state during drag, context state when not dragging
   const displayTrimStart = isTrimming ? localTrimStart : (clip.trimStart || 0);
@@ -111,15 +109,60 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
     selectTimelineClip(clip.id);
   };
 
+  // Handle clip drag start (for repositioning)
+  const handleDragStart = (e) => {
+    // Don't allow dragging if trimming
+    if (isTrimming) {
+      e.preventDefault();
+      return;
+    }
+
+    setIsDragging(true);
+    
+    // Store clip data for drag-and-drop
+    const clipData = {
+      ...clip,
+      isRepositioning: true, // Flag to indicate this is a reposition, not a new drop
+    };
+    
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/json', JSON.stringify(clipData));
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Calculate if playhead is within this clip for split indicator
+  const trimStart = clip.trimStart || 0;
+  const trimEnd = clip.trimEnd || clip.duration;
+  const clipStartTime = clip.position;
+  const clipEndTime = clip.position + (trimEnd - trimStart);
+  const playheadTime = playhead * maxTimelineDuration;
+  const isPlayheadInClip = playheadTime > clipStartTime && playheadTime < clipEndTime;
+  
+  // Calculate split indicator position relative to clip
+  const splitIndicatorPosition = isPlayheadInClip && isHovering 
+    ? ((playheadTime - clipStartTime) / (clipEndTime - clipStartTime)) * 100 
+    : null;
+
   return (
     <div
-      className={clipClassName}
+      className={`${clipClassName} ${isDragging ? 'dragging' : ''}`}
       style={{
         left: `${(displayPosition / maxDuration) * zoom * 100}%`,
         width: `${(displayWidth / maxDuration) * zoom * 100}%`,
+        opacity: isDragging ? 0.5 : 1,
       }}
       title={`${clip.filename} (${displayWidth.toFixed(1)}s)`}
+      draggable={!isTrimming}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onClick={handleClipClick}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      onMouseMove={handleTrimMouseMove}
+      onMouseUp={handleTrimMouseUp}
     >
       {/* Left trim handle */}
       <div
@@ -132,6 +175,15 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
         onMouseDown={(e) => handleTrimMouseDown(e, 'right')}
       />
       <div className="clip-label">{clip.filename}</div>
+      
+      {/* Split indicator - shows when hovering and playhead is within clip */}
+      {splitIndicatorPosition !== null && (
+        <div 
+          className="split-indicator"
+          style={{ left: `${splitIndicatorPosition}%` }}
+          title="Split here"
+        />
+      )}
     </div>
   );
 }
@@ -146,7 +198,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   const [draggedOverTrack, setDraggedOverTrack] = useState(null);
   const [timelineWidth, setTimelineWidth] = useState(600);
   const timelineContentRef = useRef(null);
-  const { tracks, addClipToTimeline } = useTimeline();
+  const { tracks, addClipToTimeline, splitClipAtPlayhead, removeClipFromTimeline, selectedTimelineClipId, moveClipToTrack, updateClipPosition } = useTimeline();
 
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false);
@@ -158,14 +210,19 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   const scale = (timelineWidth / 60) * zoom;
 
   // Update timeline width on resize
+  // Note: resize event must stay on window, but we add preventDefault/stopPropagation
   useEffect(() => {
-    const updateWidth = () => {
+    const updateWidth = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       if (timelineContentRef.current) {
         const rect = timelineContentRef.current.getBoundingClientRect();
         setTimelineWidth(rect.width);
       }
     };
-    updateWidth();
+    updateWidth(); // Initial call without event
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
@@ -242,29 +299,26 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
 
   const handlePlayheadMouseDown = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
     updatePlayheadPosition(e.clientX);
   };
 
-  useEffect(() => {
+  // Mouse handlers for playhead dragging - THE REACT WAY
+  const handlePlayheadMouseMove = (e) => {
     if (!isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
+    updatePlayheadPosition(e.clientX);
+  };
 
-    const handleMouseMove = (e) => {
-      updatePlayheadPosition(e.clientX);
-    };
-
-    const handleMouseUp = () => {
+  const handlePlayheadMouseUp = (e) => {
+    if (isDragging) {
+      e.preventDefault();
+      e.stopPropagation();
       setIsDragging(false);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDragging]);
+    }
+  };
 
   const handleTrackDragOver = (e, trackId) => {
     e.preventDefault();
@@ -292,20 +346,39 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       
       // Calculate drop position based on mouse X
       // Need to account for the scrollable container and actual timeline width
-      const trackRect = e.currentTarget.getBoundingClientRect();
       const scrollableContainer = timelineContentRef.current;
-      const scrollLeft = scrollableContainer ? scrollableContainer.scrollLeft : 0;
+      if (!scrollableContainer) return;
       
-      // Get mouse position relative to track, accounting for scroll
-      const relativeX = e.clientX - trackRect.left + scrollLeft;
+      const scrollLeft = scrollableContainer.scrollLeft;
+      const containerRect = scrollableContainer.getBoundingClientRect();
+      
+      // Get mouse position relative to the scrollable container's viewport
+      const mouseXInViewport = e.clientX - containerRect.left;
+      
+      // Add scroll offset to get position in the full timeline
+      const mouseXInTimeline = mouseXInViewport + scrollLeft;
       
       // Calculate actual timeline width (not viewport width)
       const actualTimelineWidth = maxTimelineDuration * zoom * 10;
       
       // Convert pixel position to time
-      const position = Math.max(0, Math.min(maxTimelineDuration, (relativeX / actualTimelineWidth) * maxTimelineDuration));
+      const position = Math.max(0, Math.min(maxTimelineDuration, (mouseXInTimeline / actualTimelineWidth) * maxTimelineDuration));
 
-      addClipToTimeline(clip, trackId, position);
+      // Check if this is a repositioning operation (clip already on timeline)
+      if (clip.isRepositioning) {
+        // Move clip to new track/position while preserving ALL state
+        // This includes trimStart, trimEnd, and any other timeline edits
+        if (clip.track === trackId) {
+          // Same track, just update position
+          updateClipPosition(clip.id, trackId, position);
+        } else {
+          // Different track, move clip with all its state
+          moveClipToTrack(clip.id, clip.track, trackId, position);
+        }
+      } else {
+        // New clip from media library
+        addClipToTimeline(clip, trackId, position);
+      }
     } catch (error) {
       console.error("Failed to parse dropped clip data:", error);
     }
@@ -365,6 +438,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       const exportResult = await window.electron.export.exportTimeline({
         clips: allClips,
         outputPath,
+        tracks, // Pass tracks for multi-track export
       });
 
       // Clean up progress listener
@@ -401,13 +475,110 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     console.log("Export cancelled");
   };
 
+  const handleSplit = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Convert playhead (0-1) to actual timeline time in seconds
+    const splitTime = playhead * maxTimelineDuration;
+    
+    // Find clip at playhead position on each track
+    let clipToSplit = null;
+    let trackId = null;
+    
+    for (const track of tracks) {
+      for (const clip of track.clips) {
+        const trimStart = clip.trimStart || 0;
+        const trimEnd = clip.trimEnd || clip.duration;
+        const clipStartTime = clip.position;
+        const clipEndTime = clip.position + (trimEnd - trimStart);
+        
+        // Check if playhead is within this clip
+        if (splitTime > clipStartTime && splitTime < clipEndTime) {
+          clipToSplit = clip;
+          trackId = track.id;
+          break;
+        }
+      }
+      if (clipToSplit) break;
+    }
+    
+    if (!clipToSplit) {
+      alert("No clip found at playhead position");
+      return;
+    }
+    
+    // Perform the split
+    splitClipAtPlayhead(clipToSplit.id, trackId, splitTime);
+    console.log(`Split clip ${clipToSplit.filename} at ${splitTime}s`);
+  };
+
+  const handleDeleteClip = () => {
+    if (!selectedTimelineClipId) {
+      console.log("No clip selected to delete");
+      return;
+    }
+
+    // Find the selected clip and its track
+    let clipToDelete = null;
+    let trackId = null;
+
+    for (const track of tracks) {
+      const clip = track.clips.find((c) => c.id === selectedTimelineClipId);
+      if (clip) {
+        clipToDelete = clip;
+        trackId = track.id;
+        break;
+      }
+    }
+
+    if (!clipToDelete || !trackId) {
+      console.error("Selected clip not found in tracks");
+      return;
+    }
+
+    // Remove the clip
+    removeClipFromTimeline(selectedTimelineClipId, trackId);
+    console.log(`Deleted clip ${clipToDelete.filename} from ${trackId} track`);
+  };
+
+  // Keyboard event handler for Delete/Backspace and Ctrl+K - THE REACT WAY
+  const handleKeyDown = (event) => {
+    // Only handle keyboard shortcuts when not typing in an input field
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+      return;
+    }
+
+    // Delete/Backspace: Delete selected clip
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      event.preventDefault();
+      event.stopPropagation();
+      handleDeleteClip();
+    }
+
+    // Ctrl+K or Cmd+K: Split clip at playhead
+    if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+      event.preventDefault();
+      event.stopPropagation();
+      handleSplit(event);
+    }
+  };
+
   return (
-    <div className="timeline-component">
+    <div 
+      className="timeline-component"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      style={{ outline: 'none' }}
+    >
       <div className="panel-header">
         <h2>Timeline</h2>
         <div className="timeline-controls">
-          <button className="btn-icon" title="Export" onClick={handleExport}>
-            📤 Export
+          <button className="btn-export" title="Export" onClick={handleExport}>
+            📤 <span>Export</span>
+          </button>
+          <button className="btn-split" title="Split Clip (Ctrl/Cmd+K)" onClick={handleSplit}>
+            ✂️ <span>Split</span>
           </button>
           <button className="btn-icon" title="Zoom In" onClick={() => setZoom(Math.min(zoom + 0.5, 10))}>
             +
@@ -433,12 +604,18 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
         {/* Fixed Track Labels Column */}
         <div className="track-labels-column">
           <div className="track-label-spacer"></div>
-          <div className="track-label-item">MAIN</div>
-          <div className="track-label-item">OVERLAY</div>
+          <div className={`track-label-item ${draggedOverTrack === "main" ? "active" : ""}`}>MAIN</div>
+          <div className={`track-label-item ${draggedOverTrack === "overlay" ? "active" : ""}`}>OVERLAY</div>
+          <div className={`track-label-item ${draggedOverTrack === "overlay2" ? "active" : ""}`}>OVERLAY 2</div>
         </div>
 
         {/* Scrollable Timeline Section */}
-        <div className="timeline-scrollable" ref={timelineContentRef}>
+        <div 
+          className="timeline-scrollable" 
+          ref={timelineContentRef}
+          onMouseMove={handlePlayheadMouseMove}
+          onMouseUp={handlePlayheadMouseUp}
+        >
           {/* Time Ruler */}
           <div className="time-ruler">
             <div className="time-ruler-container" style={{ minWidth: `${maxTimelineDuration * zoom * 10}px` }}>
@@ -475,7 +652,15 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
               >
                 {/* Render clips for Main track */}
                 {tracks.find((t) => t.id === "main")?.clips.map((clip) => (
-                  <TimelineClip key={clip.id} clip={clip} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
+                  <TimelineClip 
+                    key={clip.id} 
+                    clip={clip} 
+                    zoom={zoom} 
+                    scale={scale} 
+                    maxDuration={maxTimelineDuration}
+                    playhead={playhead}
+                    maxTimelineDuration={maxTimelineDuration}
+                  />
                 ))}
                 <div 
                   className="playhead-line" 
@@ -494,7 +679,42 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
               >
                 {/* Render clips for Overlay track */}
                 {tracks.find((t) => t.id === "overlay")?.clips.map((clip) => (
-                  <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
+                  <TimelineClip 
+                    key={clip.id} 
+                    clip={{ ...clip, type: 'overlay' }} 
+                    zoom={zoom} 
+                    scale={scale} 
+                    maxDuration={maxTimelineDuration}
+                    playhead={playhead}
+                    maxTimelineDuration={maxTimelineDuration}
+                  />
+                ))}
+                <div 
+                  className="playhead-line" 
+                  style={{ left: `${playhead * 100}%` }}
+                  onMouseDown={handlePlayheadMouseDown}
+                />
+              </div>
+            </div>
+
+            <div className="track track-overlay2">
+              <div 
+                className={`track-content ${draggedOverTrack === "overlay2" ? "drag-over" : ""}`}
+                onDragOver={(e) => handleTrackDragOver(e, "overlay2")}
+                onDragLeave={handleTrackDragLeave}
+                onDrop={(e) => handleTrackDrop(e, "overlay2")}
+              >
+                {/* Render clips for Overlay 2 track */}
+                {tracks.find((t) => t.id === "overlay2")?.clips.map((clip) => (
+                  <TimelineClip 
+                    key={clip.id} 
+                    clip={{ ...clip, type: 'overlay' }} 
+                    zoom={zoom} 
+                    scale={scale} 
+                    maxDuration={maxTimelineDuration}
+                    playhead={playhead}
+                    maxTimelineDuration={maxTimelineDuration}
+                  />
                 ))}
                 <div 
                   className="playhead-line" 

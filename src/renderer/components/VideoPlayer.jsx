@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import "./VideoPlayer.css";
 
 /**
@@ -9,8 +9,9 @@ import "./VideoPlayer.css";
  * to securely load local video files without triggering Electron's
  * file:// security restrictions.
  */
-function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onCurrentTimeChange, timelinePlayhead }) {
+function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead, onShowToast, onCurrentTimeChange, timelinePlayhead }) {
   const videoRef = useRef(null);
+  const overlayVideoRefs = useRef([]);
   const progressBarRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -24,19 +25,105 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
   const selectedClip = selectedTimelineClip || selectedMediaClip;
   const isTimelineClip = !!selectedTimelineClip;
   
+  // Multi-track preview mode: show overlays when there are overlay clips in the timeline
+  // Check if overlay tracks have any clips
+  const hasOverlayClips = tracks && (
+    tracks.find(t => t.id === "overlay")?.clips.length > 0 ||
+    tracks.find(t => t.id === "overlay2")?.clips.length > 0
+  );
+  const isMultiTrackMode = hasOverlayClips && !selectedMediaClip;
+  
   // Get trim bounds (only apply for timeline clips)
   const trimStart = isTimelineClip ? (selectedTimelineClip.trimStart || 0) : 0;
   const trimEnd = isTimelineClip ? (selectedTimelineClip.trimEnd || selectedClip?.duration || 0) : (selectedClip?.duration || 0);
+
+  // Get overlay clips at current playhead position (for multi-track mode)
+  const getOverlayClips = () => {
+    if (!isMultiTrackMode || !tracks) return [];
+    
+    const overlays = [];
+    // Get overlay and overlay2 tracks
+    const overlayTrack = tracks.find(track => track.id === "overlay");
+    const overlay2Track = tracks.find(track => track.id === "overlay2");
+    
+    if (overlayTrack) {
+      overlayTrack.clips.forEach(clip => {
+        overlays.push({ ...clip, trackId: "overlay" });
+      });
+    }
+    
+    if (overlay2Track) {
+      overlay2Track.clips.forEach(clip => {
+        overlays.push({ ...clip, trackId: "overlay2" });
+      });
+    }
+    
+    return overlays;
+  };
+
+  const overlayClips = getOverlayClips();
 
   // Sync timeline playhead changes to video (when user drags playhead on timeline)
   useEffect(() => {
     if (videoRef.current && duration > 0 && timelinePlayhead !== undefined) {
       const newTime = timelinePlayhead * duration;
+      
+      // Validate newTime is a finite number
+      if (!isFinite(newTime) || isNaN(newTime)) {
+        console.error("VideoPlayer: Invalid time calculated from playhead", {
+          timelinePlayhead,
+          duration,
+          newTime,
+          selectedClip
+        });
+        return;
+      }
+      
       if (Math.abs(videoRef.current.currentTime - newTime) > 0.1) {
         videoRef.current.currentTime = newTime;
       }
+      
+      // Sync overlay videos
+      overlayVideoRefs.current.forEach(overlayVideo => {
+        if (overlayVideo && Math.abs(overlayVideo.currentTime - newTime) > 0.1) {
+          overlayVideo.currentTime = newTime;
+        }
+      });
     }
-  }, [timelinePlayhead, duration]);
+  }, [timelinePlayhead, duration, selectedClip]);
+
+  // Sync overlay videos play/pause with main video
+  useEffect(() => {
+    if (!videoRef.current || overlayClips.length === 0) return;
+    
+    const mainVideo = videoRef.current;
+    
+    const syncOverlays = () => {
+      overlayVideoRefs.current.forEach(overlayVideo => {
+        if (!overlayVideo) return;
+        
+        // Sync play state
+        if (isPlaying && overlayVideo.paused) {
+          overlayVideo.play().catch(err => console.warn("Overlay play failed:", err));
+        } else if (!isPlaying && !overlayVideo.paused) {
+          overlayVideo.pause();
+        }
+        
+        // Sync time
+        if (Math.abs(overlayVideo.currentTime - mainVideo.currentTime) > 0.2) {
+          overlayVideo.currentTime = mainVideo.currentTime;
+        }
+      });
+    };
+    
+    // Sync on play/pause changes
+    syncOverlays();
+    
+    // Periodically sync during playback
+    const syncInterval = setInterval(syncOverlays, 100);
+    
+    return () => clearInterval(syncInterval);
+  }, [isPlaying, overlayClips.length]);
 
   // Reset player and load new source when clip file changes (NOT when trim changes)
   useEffect(() => {
@@ -89,33 +176,9 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
       
       // Load the video metadata
       video.load();
-
-      // Handle load errors
-      const handleLoadError = (e) => {
-        console.error("Failed to load video:", e);
-        const errorMessage = "Failed to load video. File may have been moved or deleted.";
-        setError(errorMessage);
-        if (onShowToast) {
-          onShowToast(errorMessage, "error");
-        }
-      };
-
-      video.addEventListener("error", handleLoadError, { once: true });
-
-      // For timeline clips, seek to trimStart once loaded
-      const handleLoadedMetadata = () => {
-        if (isTimelineClip && trimStart > 0) {
-          video.currentTime = trimStart;
-        }
-      };
       
-      video.addEventListener("loadedmetadata", handleLoadedMetadata, { once: true });
-
-      // Cleanup
-      return () => {
-        video.removeEventListener("error", handleLoadError);
-        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      };
+      // Note: Error handling and loadedmetadata are handled by React event handlers
+      // on the video element itself (onError, onLoadedMetadata)
     }
   }, [selectedClip?.filePath, selectedClip?.id]);
 
@@ -149,7 +212,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
     }
   }, []);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     if (!videoRef.current || !selectedClip) return;
 
     if (isPlaying) {
@@ -166,87 +229,85 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
       });
       setIsPlaying(true);
     }
+  }, [selectedClip, isPlaying]);
+
+  // Handle keyboard shortcuts - THE REACT WAY
+  const handleKeyDown = (e) => {
+    // Only handle if video is loaded
+    if (!videoRef.current) return;
+
+    // Prevent default and stop propagation for ALL video control keys
+    const videoControlKeys = [' ', 'k', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    if (videoControlKeys.includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    switch (e.key) {
+      case " ": // Spacebar
+      case "k": // K is common for play/pause in video players
+        togglePlayPause();
+        break;
+      case "ArrowLeft":
+        // Skip backward 10 seconds
+        if (videoRef.current.duration > 0) {
+          const currentTime = videoRef.current.currentTime;
+          const newTime = Math.max(currentTime - 10, 0);
+          videoRef.current.currentTime = newTime;
+        }
+        break;
+      case "ArrowRight":
+        // Skip forward 10 seconds
+        if (videoRef.current.duration > 0) {
+          const currentTime = videoRef.current.currentTime;
+          const duration = videoRef.current.duration;
+          const newTime = Math.min(currentTime + 10, duration);
+          videoRef.current.currentTime = newTime;
+        }
+        break;
+      case "ArrowUp":
+        // Increase volume
+        setVolume((currentVolume) => {
+          const newVolume = Math.min(currentVolume + 0.1, 1);
+          if (videoRef.current) {
+            videoRef.current.volume = newVolume;
+            videoRef.current.muted = false;
+          }
+          setIsMuted(false);
+          localStorage.setItem("videoPlayerVolume", newVolume.toString());
+          return newVolume;
+        });
+        break;
+      case "ArrowDown":
+        // Decrease volume
+        setVolume((currentVolume) => {
+          const newVolume = Math.max(currentVolume - 0.1, 0);
+          if (videoRef.current) {
+            videoRef.current.volume = newVolume;
+          }
+          localStorage.setItem("videoPlayerVolume", newVolume.toString());
+          return newVolume;
+        });
+        break;
+      default:
+        break;
+    }
   };
-
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Only handle keyboard shortcuts if a video is selected
-      if (!selectedClip) return;
-
-      // Ignore if user is typing in an input field
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-        return;
-      }
-
-      switch (e.key) {
-        case " ": // Spacebar
-        case "k": // K is common for play/pause in video players
-          e.preventDefault();
-          togglePlayPause();
-          break;
-        case "ArrowLeft":
-          e.preventDefault();
-          // Skip backward 10 seconds
-          if (videoRef.current && videoRef.current.duration > 0) {
-            const currentTime = videoRef.current.currentTime;
-            const newTime = Math.max(currentTime - 10, 0);
-            videoRef.current.currentTime = newTime;
-          }
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          // Skip forward 10 seconds
-          if (videoRef.current && videoRef.current.duration > 0) {
-            const currentTime = videoRef.current.currentTime;
-            const duration = videoRef.current.duration;
-            const newTime = Math.min(currentTime + 10, duration);
-            videoRef.current.currentTime = newTime;
-          }
-          break;
-        case "ArrowUp":
-          e.preventDefault();
-          // Increase volume
-          {
-            const newVolume = Math.min(volume + 0.1, 1);
-            setVolume(newVolume);
-            if (videoRef.current) {
-              videoRef.current.volume = newVolume;
-              if (isMuted) {
-                videoRef.current.muted = false;
-                setIsMuted(false);
-              }
-            }
-            localStorage.setItem("videoPlayerVolume", newVolume.toString());
-          }
-          break;
-        case "ArrowDown":
-          e.preventDefault();
-          // Decrease volume
-          {
-            const newVolume = Math.max(volume - 0.1, 0);
-            setVolume(newVolume);
-            if (videoRef.current) {
-              videoRef.current.volume = newVolume;
-            }
-            localStorage.setItem("videoPlayerVolume", newVolume.toString());
-          }
-          break;
-        default:
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [selectedClip, isPlaying, duration, volume, isMuted, togglePlayPause]);
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(videoRef.current.duration);
+      const videoDuration = videoRef.current.duration;
+      
+      // Validate duration before setting
+      if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+        console.warn("VideoPlayer: Invalid duration from video element", {
+          duration: videoDuration,
+          selectedClip
+        });
+        setDuration(0);
+      } else {
+        setDuration(videoDuration);
+      }
       
       // Check for audio-only files
       if (videoRef.current.videoWidth === 0 && videoRef.current.videoHeight === 0) {
@@ -255,6 +316,11 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
         if (onShowToast) {
           onShowToast(errorMessage, "warning");
         }
+      }
+      
+      // For timeline clips, seek to trimStart once loaded
+      if (isTimelineClip && trimStart > 0) {
+        videoRef.current.currentTime = trimStart;
       }
     }
   };
@@ -353,6 +419,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
     }
   };
 
+  // Mouse handlers for progress bar scrubbing - THE REACT WAY
   const handleProgressBarMouseDown = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -373,41 +440,34 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
     setCurrentTime(time);
   };
 
-  // Add global mouse event listeners for dragging
-  useEffect(() => {
+  const handleMouseMove = (e) => {
     if (!isSeeking) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    if (!videoRef.current || !progressBarRef.current || !duration) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    
+    // For timeline clips, constrain seeking to trimmed range
+    let time;
+    if (isTimelineClip) {
+      time = trimStart + pos * (trimEnd - trimStart);
+    } else {
+      time = pos * duration;
+    }
+    
+    videoRef.current.currentTime = time;
+    setCurrentTime(time);
+  };
 
-    const handleMouseMove = (e) => {
+  const handleMouseUp = (e) => {
+    if (isSeeking) {
       e.preventDefault();
       e.stopPropagation();
-      if (!videoRef.current || !progressBarRef.current || !duration) return;
-      const rect = progressBarRef.current.getBoundingClientRect();
-      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      
-      // For timeline clips, constrain seeking to trimmed range
-      let time;
-      if (isTimelineClip) {
-        time = trimStart + pos * (trimEnd - trimStart);
-      } else {
-        time = pos * duration;
-      }
-      
-      videoRef.current.currentTime = time;
-      setCurrentTime(time);
-    };
-
-    const handleMouseUp = () => {
       setIsSeeking(false);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isSeeking, duration, isTimelineClip, trimStart, trimEnd]);
+    }
+  };
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return "0:00";
@@ -422,7 +482,14 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
   const progress = displayDuration > 0 ? (displayCurrentTime / displayDuration) * 100 : 0;
 
   return (
-    <section className="video-preview">
+    <section 
+      className="video-preview"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      style={{ outline: 'none' }}
+    >
       <div className="panel-header">
         <h2>Preview</h2>
         {selectedClip && (
@@ -453,7 +520,46 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, onShowToast, onC
                 onEnded={handleEnded}
                 onError={handleError}
                 className="video-element"
+                controls={false}
+                disablePictureInPicture
+                disableRemotePlayback
               />
+              
+              {/* Overlay videos for multi-track preview */}
+              {overlayClips.map((overlayClip, index) => {
+                const videoSrc = overlayClip.filePath?.startsWith("local-video:") || overlayClip.filePath?.startsWith("blob:") 
+                  ? overlayClip.filePath
+                  : `local-video://load?path=${encodeURIComponent(overlayClip.filePath?.replace(/\\/g, "/") || "")}`;
+                
+                // Position: first overlay bottom-right, second overlay bottom-left
+                const position = overlayClip.trackId === "overlay" 
+                  ? { bottom: "80px", right: "20px" }
+                  : { bottom: "80px", left: "20px" };
+                
+                return (
+                  <video
+                    key={`${overlayClip.id}-${index}`}
+                    ref={el => overlayVideoRefs.current[index] = el}
+                    src={videoSrc}
+                    className="video-overlay"
+                    style={{
+                      position: "absolute",
+                      ...position,
+                      width: "25%",
+                      maxWidth: "320px",
+                      height: "auto",
+                      border: "2px solid rgba(255, 255, 255, 0.3)",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+                      zIndex: 10 + index,
+                    }}
+                    muted
+                    controls={false}
+                    disablePictureInPicture
+                    disableRemotePlayback
+                  />
+                );
+              })}
             </div>
 
             <div className="video-controls">

@@ -1,14 +1,14 @@
-# ClipCreate - Product Requirements Document
+# ClipForge - Product Requirements Document
 
 ## Project Overview
 
-**Project Name:** ClipCreate  
+**Project Name:** ClipForge  
 **Timeline:** 72 hours (October 27-29, 2025)  
 **Tech Stack:** Electron + React + Bundled FFmpeg  
 **Platform:** Desktop (macOS + Windows)  
 **Purpose:** Portfolio project / Assignment submission
 
-ClipCreate is a desktop video editor that enables users to record their screen and webcam, import video clips, arrange them on a timeline, and export professional-looking videos. Built as a 72-hour sprint project, it focuses on core video editing workflows without cloud dependencies.
+ClipForge is a desktop video editor that enables users to record their screen and webcam, import video clips, arrange them on a timeline, and export professional-looking videos. Built as a 72-hour sprint project, it focuses on core video editing workflows without cloud dependencies.
 
 ---
 
@@ -334,7 +334,7 @@ Prioritized features to add if core functionality is complete early:
 
    - Save timeline state as JSON file
    - Format: Store clip paths, trim points, track positions
-   - File extension: `.clipcreate` or `.json`
+   - File extension: `.clipforge` or `.json`
    - Load existing projects back into editor
    - _Note: Projects break if source video files are moved/deleted (acceptable)_
 
@@ -503,7 +503,7 @@ The application will be tested with these workflows:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  ClipCreate                                    [ _ ] [ ◻ ] [ X ]│
+│  ClipForge                                    [ _ ] [ ◻ ] [ X ]│
 ├─────────────────────────────────────────────────────────────┤
 │  File  Edit  View  Help                                     │
 ├─────────────────────────────────────────────────────────────┤

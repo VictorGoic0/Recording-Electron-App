@@ -6,6 +6,7 @@ const {
   shell,
   protocol,
   net,
+  desktopCapturer,
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -18,6 +19,7 @@ const {
   getFileSize,
   getCodecInfo,
   generateThumbnail,
+  fixWebMDuration,
 } = require("./services/ffmpegService");
 const {
   exportSingleClip,
@@ -61,7 +63,11 @@ function createWindow() {
     mainWindow.loadURL("http://localhost:3000");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../dist-renderer/index.html"));
+    // In production, the app structure is: app.asar/dist-renderer/index.html
+    // __dirname in packaged app points to: app.asar/src/main
+    // So we need to go up two levels and then into dist-renderer
+    const indexPath = path.join(__dirname, "../../dist-renderer/index.html");
+    mainWindow.loadFile(indexPath);
   }
 
   mainWindow.on("closed", function () {
@@ -424,7 +430,7 @@ ipcMain.handle("export-timeline", async (event, exportData) => {
     console.log("[IPC] Export timeline called");
     console.log("Export data:", JSON.stringify(exportData, null, 2));
 
-    const { clips, outputPath } = exportData;
+    const { clips, outputPath, tracks } = exportData;
 
     if (!clips || clips.length === 0) {
       throw new Error("No clips to export");
@@ -435,7 +441,16 @@ ipcMain.handle("export-timeline", async (event, exportData) => {
       event.sender.send("export-progress", { progress });
     };
 
-    if (clips.length === 1) {
+    // Check if we have multi-track export (clips with track information)
+    const hasMultipleTracks = clips.some(
+      (clip) => clip.track && clip.track !== "main"
+    );
+
+    if (hasMultipleTracks && tracks) {
+      // Multi-track export with overlay
+      const { exportMultiTrack } = require("./services/exportService");
+      await exportMultiTrack(tracks, outputPath, sendProgress);
+    } else if (clips.length === 1) {
       // Single clip export
       const clip = clips[0];
       await exportSingleClip(
@@ -446,7 +461,7 @@ ipcMain.handle("export-timeline", async (event, exportData) => {
         sendProgress
       );
     } else {
-      // Multiple clips export
+      // Multiple clips export (concatenation)
       const clipData = clips.map((clip) => ({
         path: clip.filePath,
         trimStart: clip.trimStart || 0,
@@ -462,6 +477,111 @@ ipcMain.handle("export-timeline", async (event, exportData) => {
     };
   } catch (error) {
     console.error("[IPC] Export failed:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+// ============================================================================
+// Screen Recording Operations
+// ============================================================================
+
+/**
+ * Get available desktop sources (screens and windows) for recording
+ */
+ipcMain.handle("get-desktop-sources", async (event, options = {}) => {
+  try {
+    console.log("[IPC] Getting desktop sources");
+
+    const { types = ["screen", "window"] } = options;
+
+    // Get screens and windows separately to properly categorize them
+    const [screenSources, windowSources] = await Promise.all([
+      desktopCapturer.getSources({
+        types: ["screen"],
+        thumbnailSize: { width: 300, height: 200 },
+      }),
+      desktopCapturer.getSources({
+        types: ["window"],
+        thumbnailSize: { width: 300, height: 200 },
+      }),
+    ]);
+
+    // Format screen sources
+    const formattedScreens = screenSources.map((source) => ({
+      id: source.id,
+      name: source.name,
+      thumbnail: source.thumbnail.toDataURL(),
+      display_id: source.display_id,
+      type: "screen",
+    }));
+
+    // Format window sources
+    const formattedWindows = windowSources.map((source) => ({
+      id: source.id,
+      name: source.name,
+      thumbnail: source.thumbnail.toDataURL(),
+      display_id: source.display_id,
+      type: "window",
+    }));
+
+    // Combine both types
+    const formattedSources = [...formattedScreens, ...formattedWindows];
+
+    console.log(
+      `[IPC] Found ${formattedScreens.length} screens and ${formattedWindows.length} windows`
+    );
+
+    return {
+      success: true,
+      sources: formattedSources,
+    };
+  } catch (error) {
+    console.error("[IPC] Failed to get desktop sources:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+});
+
+// Save screen recording to file
+ipcMain.handle("save-recording", async (event, buffer, filename) => {
+  try {
+    console.log("[IPC] Saving recording:", filename);
+
+    // Get the user's videos directory
+    const videosPath = app.getPath("videos");
+    const savePath = path.join(videosPath, filename);
+
+    // Write the buffer to file
+    await fs.promises.writeFile(savePath, Buffer.from(buffer));
+
+    console.log("[IPC] Recording saved successfully:", savePath);
+
+    // Fix WebM duration metadata if it's a WebM file
+    if (filename.toLowerCase().endsWith(".webm")) {
+      try {
+        console.log("[IPC] Fixing WebM duration metadata...");
+        await fixWebMDuration(savePath);
+        console.log("[IPC] WebM duration metadata fixed");
+      } catch (fixError) {
+        console.warn(
+          "[IPC] Failed to fix WebM duration (file still usable):",
+          fixError.message
+        );
+        // Don't fail the entire operation if duration fix fails
+      }
+    }
+
+    return {
+      success: true,
+      filePath: savePath,
+    };
+  } catch (error) {
+    console.error("[IPC] Failed to save recording:", error);
     return {
       success: false,
       error: error.message,

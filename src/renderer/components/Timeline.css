@@ -48,12 +48,23 @@
   background: #1a1a1a;
 }
 
-.track-label-item:first-of-type {
+.track-label-item:nth-of-type(2) {
   border-left: 3px solid #0078d4;
 }
 
-.track-label-item:nth-of-type(2) {
+.track-label-item:nth-of-type(3) {
   border-left: 3px solid #16c60c;
+}
+
+.track-label-item:nth-of-type(4) {
+  border-left: 3px solid #ff6b6b;
+}
+
+.track-label-item.active {
+  background: rgba(0, 120, 212, 0.3);
+  color: #4cc2ff;
+  font-weight: 700;
+  border-left-width: 5px;
 }
 
 /* Scrollable Timeline Section */
@@ -133,6 +144,10 @@
   background: #1e1e1e;
 }
 
+.track-overlay2 {
+  background: #1d1d1d;
+}
+
 .track:hover {
   background-color: #252525;
 }
@@ -149,9 +164,19 @@
 }
 
 .track-content.drag-over {
-  background-color: rgba(0, 120, 212, 0.1);
-  border-left: 2px solid #0078d4;
-  box-shadow: inset 0 0 20px rgba(0, 120, 212, 0.2);
+  background-color: rgba(0, 120, 212, 0.15);
+  border: 2px dashed #0078d4;
+  box-shadow: inset 0 0 20px rgba(0, 120, 212, 0.3);
+  animation: pulse-drag-over 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-drag-over {
+  0%, 100% {
+    background-color: rgba(0, 120, 212, 0.15);
+  }
+  50% {
+    background-color: rgba(0, 120, 212, 0.25);
+  }
 }
 
 /* Timeline Clips */
@@ -162,7 +187,7 @@
   background: var(--accent-primary);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
-  cursor: pointer;
+  cursor: move;
   transition: all 0.2s ease;
   overflow: hidden;
   z-index: 5;
@@ -171,6 +196,11 @@
 .timeline-clip:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.timeline-clip.dragging {
+  cursor: grabbing;
+  z-index: 100;
 }
 
 .timeline-clip.selected {
@@ -225,6 +255,30 @@
   right: 0;
   border-top-right-radius: 4px;
   border-bottom-right-radius: 4px;
+}
+
+/* Split Indicator */
+.split-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #ffcc00;
+  z-index: 12;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
+  animation: pulse-split 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-split {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 20px rgba(255, 204, 0, 1);
+  }
 }
 
 /* Playhead Line */
