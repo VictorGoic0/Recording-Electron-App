@@ -843,12 +843,31 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
   - Double-check all submission requirements met ✓
 
 - [x] 12. Drag-to-reposition clips on timeline (BONUS - MVP Critical) ✅
+
   - Clips are now draggable within and between tracks ✓
   - Click and drag any clip to move it to a different time position ✓
   - Drag clips between main, overlay, and overlay 2 tracks ✓
   - Preserves trim settings when repositioning ✓
   - Visual feedback during drag (opacity, cursor change) ✓
   - Works seamlessly with existing trim and split functionality ✓
+
+- [x] 13. FIX BUG: Preserve clip edits when repositioning (CRITICAL) ✅
+
+  - Issue: Repositioning a clip reverted trim/duration edits ✓ FIXED
+  - Root cause: Creating new clip from file data instead of preserving timeline state ✓ IDENTIFIED
+  - Fix: Created moveClipToTrack() function in TimelineContext ✓
+  - Same track repositioning: Uses updateClipPosition() to preserve all state ✓
+  - Cross-track repositioning: Uses moveClipToTrack() to transfer complete clip state ✓
+  - Timeline clips are now fully independent of media library state ✓
+  - All timeline edits (trim, split, duration) persist through any reposition operation ✓
+
+- [x] 14. FIX BUG: Clip drops in wrong position when timeline scrolled (CRITICAL) ✅
+  - Issue: Clips dropped far to the right when timeline scrollbar was scrolled right ✓ FIXED
+  - Root cause: Using track's bounding rect instead of container's ✓ IDENTIFIED
+  - Problem: trackRect.left was already accounting for scroll in viewport ✓
+  - Solution: Calculate mouse position relative to scrollable container ✓
+  - New logic: mouseXInViewport + scrollLeft = accurate position in full timeline ✓
+  - Now works correctly at any scroll position ✓
 
 **PR Completion Criteria:**
 

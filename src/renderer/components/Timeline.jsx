@@ -200,7 +200,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   const [draggedOverTrack, setDraggedOverTrack] = useState(null);
   const [timelineWidth, setTimelineWidth] = useState(600);
   const timelineContentRef = useRef(null);
-  const { tracks, addClipToTimeline, splitClipAtPlayhead, removeClipFromTimeline, selectedTimelineClipId } = useTimeline();
+  const { tracks, addClipToTimeline, splitClipAtPlayhead, removeClipFromTimeline, selectedTimelineClipId, moveClipToTrack, updateClipPosition } = useTimeline();
 
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false);
@@ -346,36 +346,35 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       
       // Calculate drop position based on mouse X
       // Need to account for the scrollable container and actual timeline width
-      const trackRect = e.currentTarget.getBoundingClientRect();
       const scrollableContainer = timelineContentRef.current;
-      const scrollLeft = scrollableContainer ? scrollableContainer.scrollLeft : 0;
+      if (!scrollableContainer) return;
       
-      // Get mouse position relative to track, accounting for scroll
-      const relativeX = e.clientX - trackRect.left + scrollLeft;
+      const scrollLeft = scrollableContainer.scrollLeft;
+      const containerRect = scrollableContainer.getBoundingClientRect();
+      
+      // Get mouse position relative to the scrollable container's viewport
+      const mouseXInViewport = e.clientX - containerRect.left;
+      
+      // Add scroll offset to get position in the full timeline
+      const mouseXInTimeline = mouseXInViewport + scrollLeft;
       
       // Calculate actual timeline width (not viewport width)
       const actualTimelineWidth = maxTimelineDuration * zoom * 10;
       
       // Convert pixel position to time
-      const position = Math.max(0, Math.min(maxTimelineDuration, (relativeX / actualTimelineWidth) * maxTimelineDuration));
+      const position = Math.max(0, Math.min(maxTimelineDuration, (mouseXInTimeline / actualTimelineWidth) * maxTimelineDuration));
 
       // Check if this is a repositioning operation (clip already on timeline)
       if (clip.isRepositioning) {
-        // Remove clip from its current position/track
-        removeClipFromTimeline(clip.id, clip.track);
-        
-        // Add it to the new position/track
-        // Need to preserve trim settings
-        const repositionedClip = {
-          id: clip.fileId, // Use original file ID for new clip
-          filePath: clip.filePath,
-          filename: clip.filename,
-          duration: clip.duration,
-          trimStart: clip.trimStart,
-          trimEnd: clip.trimEnd,
-        };
-        
-        addClipToTimeline(repositionedClip, trackId, position);
+        // Move clip to new track/position while preserving ALL state
+        // This includes trimStart, trimEnd, and any other timeline edits
+        if (clip.track === trackId) {
+          // Same track, just update position
+          updateClipPosition(clip.id, trackId, position);
+        } else {
+          // Different track, move clip with all its state
+          moveClipToTrack(clip.id, clip.track, trackId, position);
+        }
       } else {
         // New clip from media library
         addClipToTimeline(clip, trackId, position);

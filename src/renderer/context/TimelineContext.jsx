@@ -173,6 +173,42 @@ export const TimelineProvider = ({ children }) => {
     );
   };
 
+  const moveClipToTrack = (clipId, fromTrackId, toTrackId, newPosition) => {
+    setTracks((prevTracks) => {
+      // Find the clip in the source track
+      const sourceTrack = prevTracks.find((t) => t.id === fromTrackId);
+      if (!sourceTrack) return prevTracks;
+
+      const clip = sourceTrack.clips.find((c) => c.id === clipId);
+      if (!clip) return prevTracks;
+
+      // Remove from source track and add to destination track with new position
+      return prevTracks.map((track) => {
+        if (track.id === fromTrackId) {
+          // Remove clip from source track
+          return {
+            ...track,
+            clips: track.clips.filter((c) => c.id !== clipId),
+          };
+        } else if (track.id === toTrackId) {
+          // Add clip to destination track with updated position
+          return {
+            ...track,
+            clips: [
+              ...track.clips,
+              {
+                ...clip,
+                track: toTrackId,
+                position: newPosition,
+              },
+            ],
+          };
+        }
+        return track;
+      });
+    });
+  };
+
   const value = {
     // State
     playhead,
@@ -192,6 +228,7 @@ export const TimelineProvider = ({ children }) => {
     updateClipTrim,
     selectTimelineClip,
     splitClipAtPlayhead,
+    moveClipToTrack,
   };
 
   return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>;
