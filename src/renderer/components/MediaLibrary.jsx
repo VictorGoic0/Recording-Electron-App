@@ -454,7 +454,11 @@ function MediaLibrary({
   // Close context menu when clicking anywhere
   useEffect(() => {
     if (contextMenu) {
-      const handleClick = () => closeContextMenu();
+      const handleClick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeContextMenu();
+      };
       document.addEventListener("click", handleClick);
       return () => document.removeEventListener("click", handleClick);
     }
@@ -464,6 +468,8 @@ function MediaLibrary({
   useEffect(() => {
     if (isRecordDropdownOpen) {
       const handleClick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         const target = event.target;
         if (!target.closest('.record-button-container')) {
           setIsRecordDropdownOpen(false);

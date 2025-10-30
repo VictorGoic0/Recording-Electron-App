@@ -176,33 +176,9 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
       
       // Load the video metadata
       video.load();
-
-      // Handle load errors
-      const handleLoadError = (e) => {
-        console.error("Failed to load video:", e);
-        const errorMessage = "Failed to load video. File may have been moved or deleted.";
-        setError(errorMessage);
-        if (onShowToast) {
-          onShowToast(errorMessage, "error");
-        }
-      };
-
-      video.addEventListener("error", handleLoadError, { once: true });
-
-      // For timeline clips, seek to trimStart once loaded
-      const handleLoadedMetadata = () => {
-        if (isTimelineClip && trimStart > 0) {
-          video.currentTime = trimStart;
-        }
-      };
       
-      video.addEventListener("loadedmetadata", handleLoadedMetadata, { once: true });
-
-      // Cleanup
-      return () => {
-        video.removeEventListener("error", handleLoadError);
-        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      };
+      // Note: Error handling and loadedmetadata are handled by React event handlers
+      // on the video element itself (onError, onLoadedMetadata)
     }
   }, [selectedClip?.filePath, selectedClip?.id]);
 
@@ -237,7 +213,6 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
   }, []);
 
   const togglePlayPause = useCallback(() => {
-    console.log("toggle play pause")
     if (!videoRef.current || !selectedClip) return;
 
     if (isPlaying) {
@@ -256,87 +231,68 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
     }
   }, [selectedClip, isPlaying]);
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Only handle keyboard shortcuts if a video is selected
-      if (!selectedClip) return;
+  // Handle keyboard shortcuts - THE REACT WAY
+  const handleKeyDown = (e) => {
+    // Only handle if video is loaded
+    if (!videoRef.current) return;
 
-      // Ignore if user is typing in an input field
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-        return;
-      }
+    // Prevent default and stop propagation for ALL video control keys
+    const videoControlKeys = [' ', 'k', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    if (videoControlKeys.includes(e.key)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-      switch (e.key) {
-        case " ": // Spacebar
-        case "k": // K is common for play/pause in video players
-          e.preventDefault();
-          togglePlayPause();
-          break;
-        case "ArrowLeft":
-          e.preventDefault();
-          // Skip backward 10 seconds
-          console.log("arrow left")
-          if (videoRef.current && videoRef.current.duration > 0) {
-            const currentTime = videoRef.current.currentTime;
-            const newTime = Math.max(currentTime - 10, 0);
-            videoRef.current.currentTime = newTime;
+    switch (e.key) {
+      case " ": // Spacebar
+      case "k": // K is common for play/pause in video players
+        togglePlayPause();
+        break;
+      case "ArrowLeft":
+        // Skip backward 10 seconds
+        if (videoRef.current.duration > 0) {
+          const currentTime = videoRef.current.currentTime;
+          const newTime = Math.max(currentTime - 10, 0);
+          videoRef.current.currentTime = newTime;
+        }
+        break;
+      case "ArrowRight":
+        // Skip forward 10 seconds
+        if (videoRef.current.duration > 0) {
+          const currentTime = videoRef.current.currentTime;
+          const duration = videoRef.current.duration;
+          const newTime = Math.min(currentTime + 10, duration);
+          videoRef.current.currentTime = newTime;
+        }
+        break;
+      case "ArrowUp":
+        // Increase volume
+        setVolume((currentVolume) => {
+          const newVolume = Math.min(currentVolume + 0.1, 1);
+          if (videoRef.current) {
+            videoRef.current.volume = newVolume;
+            videoRef.current.muted = false;
           }
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          console.log("arrow right")
-          // Skip forward 10 seconds
-          if (videoRef.current && videoRef.current.duration > 0) {
-            const currentTime = videoRef.current.currentTime;
-            const duration = videoRef.current.duration;
-            const newTime = Math.min(currentTime + 10, duration);
-            videoRef.current.currentTime = newTime;
+          setIsMuted(false);
+          localStorage.setItem("videoPlayerVolume", newVolume.toString());
+          return newVolume;
+        });
+        break;
+      case "ArrowDown":
+        // Decrease volume
+        setVolume((currentVolume) => {
+          const newVolume = Math.max(currentVolume - 0.1, 0);
+          if (videoRef.current) {
+            videoRef.current.volume = newVolume;
           }
-          break;
-        case "ArrowUp":
-          e.preventDefault();
-          // Increase volume
-          {
-            // Get current volume from state via setVolume callback pattern
-            setVolume((currentVolume) => {
-              const newVolume = Math.min(currentVolume + 0.1, 1);
-              if (videoRef.current) {
-                videoRef.current.volume = newVolume;
-                videoRef.current.muted = false;
-              }
-              setIsMuted(false);
-              localStorage.setItem("videoPlayerVolume", newVolume.toString());
-              return newVolume;
-            });
-          }
-          break;
-        case "ArrowDown":
-          e.preventDefault();
-          // Decrease volume
-          {
-            // Get current volume from state via setVolume callback pattern
-            setVolume((currentVolume) => {
-              const newVolume = Math.max(currentVolume - 0.1, 0);
-              if (videoRef.current) {
-                videoRef.current.volume = newVolume;
-              }
-              localStorage.setItem("videoPlayerVolume", newVolume.toString());
-              return newVolume;
-            });
-          }
-          break;
-        default:
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [selectedClip, togglePlayPause]);  // Removed excessive dependencies that caused constant re-registration
+          localStorage.setItem("videoPlayerVolume", newVolume.toString());
+          return newVolume;
+        });
+        break;
+      default:
+        break;
+    }
+  };
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
@@ -361,17 +317,20 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
           onShowToast(errorMessage, "warning");
         }
       }
+      
+      // For timeline clips, seek to trimStart once loaded
+      if (isTimelineClip && trimStart > 0) {
+        videoRef.current.currentTime = trimStart;
+      }
     }
   };
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      console.log("time update")
       const newTime = videoRef.current.currentTime;
       
       // For timeline clips, constrain playback to trimmed range
       if (isTimelineClip && newTime >= trimEnd) {
-        console.log("time update pause")
         videoRef.current.pause();
         videoRef.current.currentTime = trimEnd;
         setIsPlaying(false);
@@ -460,6 +419,7 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
     }
   };
 
+  // Mouse handlers for progress bar scrubbing - THE REACT WAY
   const handleProgressBarMouseDown = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -475,49 +435,39 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
     } else {
       time = pos * duration;
     }
-
-    console.log("progress bar mouse down", time)
     
     videoRef.current.currentTime = time;
-
     setCurrentTime(time);
   };
 
-  // Add global mouse event listeners for dragging
-  useEffect(() => {
+  const handleMouseMove = (e) => {
     if (!isSeeking) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    if (!videoRef.current || !progressBarRef.current || !duration) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    
+    // For timeline clips, constrain seeking to trimmed range
+    let time;
+    if (isTimelineClip) {
+      time = trimStart + pos * (trimEnd - trimStart);
+    } else {
+      time = pos * duration;
+    }
+    
+    videoRef.current.currentTime = time;
+    setCurrentTime(time);
+  };
 
-    const handleMouseMove = (e) => {
+  const handleMouseUp = (e) => {
+    if (isSeeking) {
       e.preventDefault();
       e.stopPropagation();
-      if (!videoRef.current || !progressBarRef.current || !duration) return;
-      const rect = progressBarRef.current.getBoundingClientRect();
-      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      
-      // For timeline clips, constrain seeking to trimmed range
-      let time;
-      if (isTimelineClip) {
-        time = trimStart + pos * (trimEnd - trimStart);
-      } else {
-        time = pos * duration;
-      }
-      
-      videoRef.current.currentTime = time;
-      setCurrentTime(time);
-    };
-
-    const handleMouseUp = () => {
       setIsSeeking(false);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isSeeking, duration, isTimelineClip, trimStart, trimEnd]);
+    }
+  };
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return "0:00";
@@ -532,7 +482,14 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
   const progress = displayDuration > 0 ? (displayCurrentTime / displayDuration) * 100 : 0;
 
   return (
-    <section className="video-preview">
+    <section 
+      className="video-preview"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      style={{ outline: 'none' }}
+    >
       <div className="panel-header">
         <h2>Preview</h2>
         {selectedClip && (
@@ -563,6 +520,9 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
                 onEnded={handleEnded}
                 onError={handleError}
                 className="video-element"
+                controls={false}
+                disablePictureInPicture
+                disableRemotePlayback
               />
               
               {/* Overlay videos for multi-track preview */}
@@ -594,6 +554,9 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
                       zIndex: 10 + index,
                     }}
                     muted
+                    controls={false}
+                    disablePictureInPicture
+                    disableRemotePlayback
                   />
                 );
               })}
