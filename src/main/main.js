@@ -19,6 +19,7 @@ const {
   getFileSize,
   getCodecInfo,
   generateThumbnail,
+  fixWebMDuration,
 } = require("./services/ffmpegService");
 const {
   exportSingleClip,
@@ -550,6 +551,21 @@ ipcMain.handle("save-recording", async (event, buffer, filename) => {
     await fs.promises.writeFile(savePath, Buffer.from(buffer));
 
     console.log("[IPC] Recording saved successfully:", savePath);
+
+    // Fix WebM duration metadata if it's a WebM file
+    if (filename.toLowerCase().endsWith(".webm")) {
+      try {
+        console.log("[IPC] Fixing WebM duration metadata...");
+        await fixWebMDuration(savePath);
+        console.log("[IPC] WebM duration metadata fixed");
+      } catch (fixError) {
+        console.warn(
+          "[IPC] Failed to fix WebM duration (file still usable):",
+          fixError.message
+        );
+        // Don't fail the entire operation if duration fix fails
+      }
+    }
 
     return {
       success: true,

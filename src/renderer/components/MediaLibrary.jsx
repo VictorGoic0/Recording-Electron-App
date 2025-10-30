@@ -156,12 +156,12 @@ function MediaLibrary({
       const filename = `screen-recording-${year}-${month}-${day}-${hours}-${minutes}-${seconds}.webm`;
       
       console.log("Saving recording as:", filename);
-      showNotification("Saving recording...", "info");
+      showNotification("Saving and processing recording...", "info");
       
       // Convert blob to array buffer
       const arrayBuffer = await blob.arrayBuffer();
       
-      // Save to disk using Electron IPC
+      // Save to disk using Electron IPC (this will also fix WebM duration)
       const saveResult = await window.electron.recording.saveRecording(arrayBuffer, filename);
       
       if (saveResult.success) {

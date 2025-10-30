@@ -293,6 +293,51 @@ async function generateThumbnailToFile(filePath, outputPath, timestamp = 1) {
   });
 }
 
+/**
+ * Fix WebM duration metadata by remuxing the file
+ * MediaRecorder often creates WebM files without proper duration metadata
+ * This function remuxes the file to add correct duration information
+ * @param {string} inputPath - Path to input WebM file
+ * @returns {Promise<string>} Path to fixed file (same as input, overwrites)
+ */
+async function fixWebMDuration(inputPath) {
+  return new Promise((resolve, reject) => {
+    const tempPath = inputPath + ".temp.webm";
+
+    console.log("[FFmpeg Service] Fixing WebM duration for:", inputPath);
+
+    ffmpeg(inputPath)
+      .outputOptions([
+        "-c copy", // Copy streams without re-encoding (fast)
+        "-avoid_negative_ts make_zero", // Fix timestamp issues
+      ])
+      .output(tempPath)
+      .on("end", () => {
+        // Replace original file with fixed version
+        const fs = require("fs");
+        fs.rename(tempPath, inputPath, (error) => {
+          if (error) {
+            console.error("[FFmpeg Service] Failed to replace file:", error);
+            // Clean up temp file
+            fs.unlink(tempPath, () => {});
+            reject(error);
+          } else {
+            console.log("[FFmpeg Service] WebM duration fixed successfully");
+            resolve(inputPath);
+          }
+        });
+      })
+      .on("error", (error) => {
+        console.error("[FFmpeg Service] Failed to fix WebM duration:", error);
+        // Clean up temp file if it exists
+        const fs = require("fs");
+        fs.unlink(tempPath, () => {});
+        reject(error);
+      })
+      .run();
+  });
+}
+
 // Initialize FFmpeg on module load
 initializeFFmpeg();
 
@@ -309,4 +354,5 @@ module.exports = {
   getCodecInfo,
   generateThumbnail,
   generateThumbnailToFile,
+  fixWebMDuration,
 };
