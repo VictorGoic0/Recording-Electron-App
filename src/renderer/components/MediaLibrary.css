@@ -456,6 +456,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .recording-status {
@@ -465,6 +467,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.mic-warning {
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 193, 7, 0.1);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--color-warning);
 }
 
 .recording-indicator {
@@ -484,7 +498,8 @@
 
 .btn-record-start,
 .btn-record-pause,
-.btn-record-stop {
+.btn-record-stop,
+.btn-mic-toggle {
   padding: 10px 20px;
   border: none;
   border-radius: var(--border-radius-sm);
@@ -498,7 +513,8 @@
 
 .btn-record-start:hover:not(:disabled),
 .btn-record-pause:hover:not(:disabled),
-.btn-record-stop:hover:not(:disabled) {
+.btn-record-stop:hover:not(:disabled),
+.btn-mic-toggle:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
@@ -530,9 +546,37 @@
   background: #d10f1f;
 }
 
+.btn-mic-toggle {
+  padding: 10px 16px;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  font-size: 18px;
+  min-width: 48px;
+}
+
+.btn-mic-toggle.enabled {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-mic-toggle.disabled {
+  background: #444;
+  color: #888;
+  opacity: 0.7;
+}
+
+.btn-mic-toggle.enabled:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-mic-toggle.disabled:hover:not(:disabled) {
+  background: #555;
+}
+
 .btn-record-start:disabled,
 .btn-record-pause:disabled,
-.btn-record-stop:disabled {
+.btn-record-stop:disabled,
+.btn-mic-toggle:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

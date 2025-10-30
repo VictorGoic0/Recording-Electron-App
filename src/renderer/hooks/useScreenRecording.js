@@ -8,9 +8,12 @@ export function useScreenRecording() {
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [error, setError] = useState(null);
+  const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
+  const audioStreamRef = useRef(null);
   const chunksRef = useRef([]);
   const recordingIntervalRef = useRef(null);
 
@@ -39,11 +42,12 @@ export function useScreenRecording() {
   /**
    * Start recording with the selected screen source
    * @param {string} sourceId - Desktop source ID from desktopCapturer
-   * @param {object} options - Recording options (bitrate, frameRate, etc.)
+   * @param {object} options - Recording options (bitrate, frameRate, includeMicrophone, etc.)
    */
   const startRecording = async (sourceId, options = {}) => {
     try {
       setError(null);
+      setMicPermissionDenied(false);
 
       // Clear any existing interval before starting
       if (recordingIntervalRef.current) {
@@ -53,8 +57,8 @@ export function useScreenRecording() {
 
       // Request screen stream using getUserMedia with desktopCapturer source
       // In Electron, we use chromeMediaSource constraints for desktop capture
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false, // Audio will be handled separately in subtask 6
+      const videoStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
         video: {
           mandatory: {
             chromeMediaSource: "desktop",
@@ -63,7 +67,37 @@ export function useScreenRecording() {
         },
       });
 
-      streamRef.current = stream;
+      streamRef.current = videoStream;
+      let combinedStream = videoStream;
+
+      // Request microphone audio if enabled
+      if (options.includeMicrophone !== false && isMicEnabled) {
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+            video: false,
+          });
+
+          audioStreamRef.current = audioStream;
+
+          // Combine video and audio streams
+          combinedStream = new MediaStream([
+            ...videoStream.getVideoTracks(),
+            ...audioStream.getAudioTracks(),
+          ]);
+
+          console.log("Microphone audio enabled for recording");
+        } catch (audioError) {
+          console.warn("Microphone access denied or unavailable:", audioError);
+          setMicPermissionDenied(true);
+          // Continue with video-only recording
+          combinedStream = videoStream;
+        }
+      }
 
       // Get supported codec
       const codec = getSupportedCodec();
@@ -74,8 +108,8 @@ export function useScreenRecording() {
         videoBitsPerSecond: options.bitrate || 2500000, // 2.5 Mbps default
       };
 
-      // Create MediaRecorder instance
-      const mediaRecorder = new MediaRecorder(stream, recorderOptions);
+      // Create MediaRecorder instance with combined stream
+      const mediaRecorder = new MediaRecorder(combinedStream, recorderOptions);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -117,10 +151,14 @@ export function useScreenRecording() {
       setError(err.message || "Failed to start recording");
       setIsRecording(false);
 
-      // Clean up stream if it was created
+      // Clean up streams if they were created
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((track) => track.stop());
+        audioStreamRef.current = null;
       }
     }
   };
@@ -197,6 +235,10 @@ export function useScreenRecording() {
             streamRef.current.getTracks().forEach((track) => track.stop());
             streamRef.current = null;
           }
+          if (audioStreamRef.current) {
+            audioStreamRef.current.getTracks().forEach((track) => track.stop());
+            audioStreamRef.current = null;
+          }
 
           mediaRecorderRef.current = null;
           chunksRef.current = [];
@@ -204,6 +246,7 @@ export function useScreenRecording() {
           setIsPaused(false);
           setRecordingTime(0);
           setError(null);
+          setMicPermissionDenied(false);
 
           resolve(blob);
         };
@@ -229,6 +272,13 @@ export function useScreenRecording() {
   };
 
   /**
+   * Toggle microphone on/off
+   */
+  const toggleMicrophone = () => {
+    setIsMicEnabled((prev) => !prev);
+  };
+
+  /**
    * Cleanup on unmount
    */
   const cleanup = () => {
@@ -239,6 +289,10 @@ export function useScreenRecording() {
     if (mediaRecorderRef.current) {
       stopRecording().catch(console.error);
     }
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach((track) => track.stop());
+      audioStreamRef.current = null;
+    }
   };
 
   return {
@@ -247,10 +301,13 @@ export function useScreenRecording() {
     recordingTime,
     formattedTime: formatRecordingTime(recordingTime),
     error,
+    isMicEnabled,
+    micPermissionDenied,
     startRecording,
     pauseRecording,
     resumeRecording,
     stopRecording,
+    toggleMicrophone,
     cleanup,
   };
 }

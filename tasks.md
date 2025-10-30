@@ -527,12 +527,12 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Start recording after countdown finishes
   - Allow skip countdown option (advanced)
 
-- [ ] 6. Capture microphone audio during recording
+- [x] 6. Capture microphone audio during recording
 
   - Request microphone access via `getUserMedia({ audio: true })`
   - Combine screen video stream + audio stream
   - Handle microphone permission denial gracefully
-  - Show microphone selection dropdown
+  - Show microphone toggle button
 
 - [ ] 7. Save recording to file
 

@@ -32,10 +32,13 @@ function MediaLibrary({
     recordingTime,
     formattedTime,
     error: recordingError,
+    isMicEnabled,
+    micPermissionDenied,
     startRecording,
     pauseRecording,
     resumeRecording,
     stopRecording,
+    toggleMicrophone,
     cleanup,
   } = useScreenRecording();
 
@@ -87,10 +90,17 @@ function MediaLibrary({
     try {
       await startRecording(selectedSource.id, {
         bitrate: 2500000, // 2.5 Mbps
+        includeMicrophone: isMicEnabled,
       });
     } catch (error) {
       console.error("Failed to start recording:", error);
     }
+  };
+
+  const handleMicToggle = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleMicrophone();
   };
 
   // Cleanup countdown on unmount
@@ -328,16 +338,31 @@ function MediaLibrary({
                   Ready: {selectedSource.name}
                 </span>
               )}
+              {micPermissionDenied && (
+                <span className="mic-warning" title="Microphone access denied. Recording without audio.">
+                  ⚠️ No mic access
+                </span>
+              )}
             </div>
             <div className="recording-buttons">
               {!isRecording ? (
-                <button
-                  className="btn-record-start"
-                  onClick={handleStartRecording}
-                  disabled={isProcessing}
-                >
-                  ▶ Start Recording
-                </button>
+                <>
+                  <button
+                    className={`btn-mic-toggle ${isMicEnabled ? "enabled" : "disabled"}`}
+                    onClick={handleMicToggle}
+                    disabled={isProcessing}
+                    title={isMicEnabled ? "Microphone enabled" : "Microphone disabled"}
+                  >
+                    {isMicEnabled ? "🎤" : "🎤"}
+                  </button>
+                  <button
+                    className="btn-record-start"
+                    onClick={handleStartRecording}
+                    disabled={isProcessing}
+                  >
+                    ▶ Start Recording
+                  </button>
+                </>
               ) : (
                 <>
                   <button
