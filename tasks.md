@@ -741,19 +741,7 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 
 ### Subtasks
 
-- [ ] 1. Add track mute/solo controls (from PR #9)
-
-  - Mute button per track (disable audio)
-  - Solo button per track (mute all others)
-  - Visual indication of muted tracks
-
-- [ ] 2. Handle overlapping clips (from PR #9)
-
-  - Prevent clips from overlapping on same track
-  - Auto-adjust clip positions to avoid overlap
-  - Or show error if user tries to overlap
-
-- [ ] 3. Implement comprehensive error handling
+- [ ] 1. Implement comprehensive error handling
 
   - **Import errors:**
     - Unsupported format: "Unsupported format. Please use MP4, MOV, or WebM"
@@ -767,61 +755,61 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
     - Permission denied: "Camera/Screen permission denied. Enable in System Preferences."
     - No sources: "No camera/screen detected."
 
-- [ ] 4. Add loading states throughout app
+- [ ] 2. Add loading states throughout app
 
   - Spinner during video import processing
   - Progress bar during thumbnail generation
   - Loading indicator during export
   - Disable buttons during async operations
 
-- [ ] 5. Add toast notifications
+- [ ] 3. Add toast notifications
 
   - Success messages: "Video imported successfully", "Export complete"
   - Error messages: Show errors in non-intrusive toasts
   - Use library like `react-toastify` or create custom
 
-- [ ] 6. Implement UI/UX polish
+- [ ] 4. Implement UI/UX polish
 
   - Smooth animations for drag-and-drop
   - Hover effects on buttons and clips
   - Consistent spacing and alignment
   - Proper focus states for accessibility
 
-- [ ] 7. Add keyboard shortcuts documentation
+- [ ] 5. Add keyboard shortcuts documentation
 
   - Create help modal showing all shortcuts
   - Accessible via Help menu or keyboard shortcut
   - List: Spacebar (play/pause), Cmd/Ctrl+K (split), Delete (remove), etc.
 
-- [ ] 8. Optimize timeline performance
+- [ ] 6. Optimize timeline performance
 
   - Virtual rendering for timelines with many clips
   - Throttle scrubbing updates
   - Debounce zoom changes
   - Profile performance with 10+ clips
 
-- [ ] 9. Test all features end-to-end
+- [ ] 7. Test all features end-to-end
 
   - Run through all testing scenarios from PRD
   - Test on both Mac and Windows (if possible)
   - Fix any critical bugs found
   - Ensure no console errors
 
-- [ ] 10. Build and package app for distribution
+- [ ] 8. Build and package app for distribution
 
   - Run `npm run build` or `electron-builder build`
   - Test packaged app on clean machine
   - Verify FFmpeg binary is included
   - Check app size (should be <200MB)
 
-- [ ] 11. Create distribution artifacts
+- [ ] 9. Create distribution artifacts
 
   - macOS: `.dmg` file
   - Windows: `.exe` installer
   - Upload to GitHub Releases or Google Drive
   - Get shareable download links
 
-- [ ] 12. Write README.md
+- [ ] 10. Write README.md
 
   - Setup instructions (install Node, npm install, npm start)
   - Build instructions (npm run build)
@@ -829,7 +817,7 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
   - Known issues or limitations
   - Architecture overview
 
-- [ ] 13. Record demo video (3-5 minutes)
+- [ ] 11. Record demo video (3-5 minutes)
 
   - Show app launch
   - Import clips
@@ -838,7 +826,7 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
   - Export final video
   - Show exported video playing
 
-- [ ] 14. Prepare final submission
+- [ ] 12. Prepare final submission
   - Push all code to GitHub
   - Upload packaged app with download link
   - Upload demo video to YouTube or include in repo
@@ -857,7 +845,25 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 
 ## Stretch Goals (After PR #10, if time permits)
 
-### PR #11: Save/Load Projects (Stretch)
+### PR #11: Advanced Timeline Features (Stretch)
+
+**Goal:** Add track mute/solo controls and handle overlapping clips
+
+- [ ] 1. Add track mute/solo controls
+
+  - Mute button per track (disable audio)
+  - Solo button per track (mute all others)
+  - Visual indication of muted tracks
+  - Update export to respect mute/solo state
+
+- [ ] 2. Handle overlapping clips
+
+  - Prevent clips from overlapping on same track
+  - Auto-adjust clip positions to avoid overlap
+  - Or show error/warning if user tries to overlap
+  - Visual feedback when drag would cause overlap
+
+### PR #12: Save/Load Projects (Stretch)
 
 - [ ] 1. Add "Save Project" button
 - [ ] 2. Serialize timeline state to JSON
@@ -868,7 +874,7 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 - [ ] 7. Validate all source video files still exist
 - [ ] 8. Show warning if files moved/deleted
 
-### PR #12: Undo/Redo (Stretch)
+### PR #13: Undo/Redo (Stretch)
 
 - [ ] 1. Implement undo/redo stack
 - [ ] 2. Track all timeline state changes
@@ -876,21 +882,21 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 - [ ] 4. Cmd/Ctrl+Shift+Z for redo
 - [ ] 5. Limit history to last 50 actions
 
-### PR #13: Transitions (Stretch)
+### PR #14: Transitions (Stretch)
 
 - [ ] 1. Add fade in/out transitions
 - [ ] 2. Add cross-dissolve between clips
 - [ ] 3. Apply transitions in export FFmpeg command
 - [ ] 4. UI controls for transition duration
 
-### PR #14: Text Overlays (Stretch)
+### PR #15: Text Overlays (Stretch)
 
 - [ ] 1. Add text layer to timeline
 - [ ] 2. Text editor with font/size/color controls
 - [ ] 3. Position text on video preview
 - [ ] 4. Render text in export using FFmpeg drawtext filter
 
-### PR #15: Real-Time PiP Recording (Stretch - Option A)
+### PR #16: Real-Time PiP Recording (Stretch - Option A)
 
 - [ ] 1. Capture screen and webcam streams simultaneously
 - [ ] 2. Use Canvas to composite webcam onto screen in real-time
@@ -898,7 +904,7 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 - [ ] 4. Save as single output file
 - [ ] 5. Add webcam position/size controls during recording
 
-### PR #16: Canvas-Based Timeline Rendering (Stretch)
+### PR #17: Canvas-Based Timeline Rendering (Stretch)
 
 **Goal:** Replace React-based timeline rendering with Canvas for buttery-smooth 60fps scrubbing
 
@@ -985,11 +991,13 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 
 ### NICE TO HAVE (Stretch)
 
-- ⭐ PR #11: Save/Load Projects
-- ⭐ PR #12: Undo/Redo
-- ⭐ PR #13: Transitions
-- ⭐ PR #14: Text Overlays
-- ⭐ PR #15: Real-Time PiP Recording
+- ⭐ PR #11: Advanced Timeline Features
+- ⭐ PR #12: Save/Load Projects
+- ⭐ PR #13: Undo/Redo
+- ⭐ PR #14: Transitions
+- ⭐ PR #15: Text Overlays
+- ⭐ PR #16: Real-Time PiP Recording
+- ⭐ PR #17: Canvas-Based Timeline Rendering
 
 ---
 
