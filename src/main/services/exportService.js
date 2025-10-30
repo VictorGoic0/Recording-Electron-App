@@ -311,8 +311,146 @@ function generateFFmpegCommand(inputPath, outputPath, trimStart, trimEnd) {
   return `ffmpeg -i "${inputPath}" -ss ${trimStart} -t ${duration} -c:v libx264 -c:a aac -b:v 5000k -b:a 192k -preset slow -crf 23 "${outputPath}"`;
 }
 
+/**
+ * Export multi-track timeline with overlays
+ * @param {Array} tracks - Array of track objects with clips
+ * @param {string} outputPath - Path to save output file
+ * @param {Function} onProgress - Progress callback
+ * @returns {Promise<string>} Path to exported file
+ */
+async function exportMultiTrack(tracks, outputPath, onProgress) {
+  return new Promise((resolve, reject) => {
+    console.log("[Export Service] Starting multi-track export with overlays");
+
+    if (!tracks || tracks.length === 0) {
+      reject(new Error("Export failed: No tracks to export"));
+      return;
+    }
+
+    // Get tracks
+    const mainTrack = tracks.find((t) => t.id === "main");
+    const overlayTrack = tracks.find((t) => t.id === "overlay");
+    const overlay2Track = tracks.find((t) => t.id === "overlay2");
+
+    // For MVP: Only support single clip per track
+    const mainClip = mainTrack?.clips[0];
+    const overlayClip = overlayTrack?.clips[0];
+    const overlay2Clip = overlay2Track?.clips[0];
+
+    if (!mainClip) {
+      reject(new Error("Export failed: No main track clip found"));
+      return;
+    }
+
+    // Start with main clip
+    let command = fluentFFmpeg(mainClip.filePath);
+
+    // Apply main clip trim
+    if (mainClip.trimStart || mainClip.trimEnd) {
+      const duration =
+        (mainClip.trimEnd || mainClip.duration) - (mainClip.trimStart || 0);
+      command.seekInput(mainClip.trimStart || 0).duration(duration);
+    }
+
+    // Build complex filter for overlays
+    let filterComplex = [];
+    let hasOverlays = false;
+
+    // Add overlay inputs if they exist
+    if (overlayClip) {
+      command.input(overlayClip.filePath);
+      hasOverlays = true;
+    }
+
+    if (overlay2Clip) {
+      command.input(overlay2Clip.filePath);
+      hasOverlays = true;
+    }
+
+    if (hasOverlays) {
+      let currentOutput = "[0:v]";
+      let filterIndex = 1;
+
+      if (overlayClip) {
+        // Scale overlay to 25% width (320px for 1280px source)
+        // Position at bottom-right with 20px margin
+        filterComplex.push(
+          `[${filterIndex}:v]scale=iw*0.25:-1[overlay${filterIndex}]`,
+          `${currentOutput}[overlay${filterIndex}]overlay=main_w-overlay_w-20:main_h-overlay_h-80[out${filterIndex}]`
+        );
+        currentOutput = `[out${filterIndex}]`;
+        filterIndex++;
+      }
+
+      if (overlay2Clip) {
+        // Scale overlay2 to 25% width
+        // Position at bottom-left with 20px margin
+        filterComplex.push(
+          `[${filterIndex}:v]scale=iw*0.25:-1[overlay${filterIndex}]`,
+          `${currentOutput}[overlay${filterIndex}]overlay=20:main_h-overlay_h-80[out${filterIndex}]`
+        );
+        currentOutput = `[out${filterIndex}]`;
+        filterIndex++;
+      }
+
+      // Apply complex filter
+      command.complexFilter(filterComplex, currentOutput);
+    }
+
+    // Output settings
+    command
+      .videoCodec("libx264")
+      .audioCodec("aac")
+      .videoBitrate("5000k")
+      .audioBitrate("192k")
+      .format("mp4")
+      .outputOptions(["-preset slow", "-crf 23"])
+      .output(outputPath);
+
+    // Track progress
+    command.on("progress", (progress) => {
+      if (onProgress && typeof onProgress === "function") {
+        let percent = 0;
+        if (progress.percent) {
+          percent = Math.min(100, Math.round(progress.percent));
+        } else if (progress.timemark) {
+          // Fallback: calculate from timemark
+          const timeParts = progress.timemark.split(":");
+          const hours = parseInt(timeParts[0]) || 0;
+          const minutes = parseInt(timeParts[1]) || 0;
+          const seconds = parseFloat(timeParts[2]) || 0;
+          const processedTime = hours * 3600 + minutes * 60 + seconds;
+          const totalDuration = mainClip.duration || 60;
+          percent = Math.min(
+            100,
+            Math.round((processedTime / totalDuration) * 100)
+          );
+        }
+        onProgress(percent);
+      }
+    });
+
+    // Handle completion
+    command.on("end", () => {
+      console.log("[Export Service] Multi-track export completed");
+      resolve(outputPath);
+    });
+
+    // Handle errors
+    command.on("error", (error, stdout, stderr) => {
+      console.error("[Export Service] Multi-track export failed:", error);
+      console.error("[Export Service] FFmpeg stderr:", stderr);
+      reject(new Error(`Multi-track export failed: ${error.message}`));
+    });
+
+    // Start export
+    command.run();
+  });
+}
+
 module.exports = {
   exportSingleClip,
   exportMultipleClips,
+  exportMultiTrack,
   generateFFmpegCommand,
 };

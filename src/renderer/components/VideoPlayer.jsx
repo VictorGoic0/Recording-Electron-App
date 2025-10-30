@@ -25,8 +25,13 @@ function VideoPlayer({ selectedMediaClip, selectedTimelineClip, tracks, playhead
   const selectedClip = selectedTimelineClip || selectedMediaClip;
   const isTimelineClip = !!selectedTimelineClip;
   
-  // Multi-track preview mode: show overlays when viewing timeline
-  const isMultiTrackMode = tracks && tracks.length > 0 && !selectedMediaClip;
+  // Multi-track preview mode: show overlays when there are overlay clips in the timeline
+  // Check if overlay tracks have any clips
+  const hasOverlayClips = tracks && (
+    tracks.find(t => t.id === "overlay")?.clips.length > 0 ||
+    tracks.find(t => t.id === "overlay2")?.clips.length > 0
+  );
+  const isMultiTrackMode = hasOverlayClips && !selectedMediaClip;
   
   // Get trim bounds (only apply for timeline clips)
   const trimStart = isTimelineClip ? (selectedTimelineClip.trimStart || 0) : 0;

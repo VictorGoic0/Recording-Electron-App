@@ -677,12 +677,17 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Allow dragging Track 2 clips to reposition (stretch - not implemented)
   - Allow resizing Track 2 clips (stretch - not implemented)
 
-- [ ] 4. Update export to handle multiple tracks
+- [x] 4. Update export to handle multiple tracks
 
-  - Build FFmpeg overlay filter: `[0:v][1:v]overlay=10:10`
-  - Position Track 2 clips at specified coordinates
-  - Scale Track 2 clips to smaller size (e.g., 320x180 for PiP)
-  - Composite all tracks into single output
+  - Build FFmpeg overlay filter: `[0:v][1:v]overlay=10:10` ✓
+  - Position Track 2 clips at specified coordinates ✓
+  - Scale Track 2 clips to smaller size (25% of original) ✓
+  - Composite all tracks into single output ✓
+  - Overlay track: bottom-right (main_w-overlay_w-20:main_h-overlay_h-80)
+  - Overlay 2 track: bottom-left (20:main_h-overlay_h-80)
+  - Complex filter chaining for multiple overlays
+  - Automatic detection of multi-track export
+  - Falls back to single/multi-clip export when no overlays
 
 - [ ] 5. Implement split clip functionality
 

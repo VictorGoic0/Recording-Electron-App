@@ -430,7 +430,7 @@ ipcMain.handle("export-timeline", async (event, exportData) => {
     console.log("[IPC] Export timeline called");
     console.log("Export data:", JSON.stringify(exportData, null, 2));
 
-    const { clips, outputPath } = exportData;
+    const { clips, outputPath, tracks } = exportData;
 
     if (!clips || clips.length === 0) {
       throw new Error("No clips to export");
@@ -441,7 +441,16 @@ ipcMain.handle("export-timeline", async (event, exportData) => {
       event.sender.send("export-progress", { progress });
     };
 
-    if (clips.length === 1) {
+    // Check if we have multi-track export (clips with track information)
+    const hasMultipleTracks = clips.some(
+      (clip) => clip.track && clip.track !== "main"
+    );
+
+    if (hasMultipleTracks && tracks) {
+      // Multi-track export with overlay
+      const { exportMultiTrack } = require("./services/exportService");
+      await exportMultiTrack(tracks, outputPath, sendProgress);
+    } else if (clips.length === 1) {
       // Single clip export
       const clip = clips[0];
       await exportSingleClip(
@@ -452,7 +461,7 @@ ipcMain.handle("export-timeline", async (event, exportData) => {
         sendProgress
       );
     } else {
-      // Multiple clips export
+      // Multiple clips export (concatenation)
       const clipData = clips.map((clip) => ({
         path: clip.filePath,
         trimStart: clip.trimStart || 0,

@@ -365,6 +365,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
       const exportResult = await window.electron.export.exportTimeline({
         clips: allClips,
         outputPath,
+        tracks, // Pass tracks for multi-track export
       });
 
       // Clean up progress listener
