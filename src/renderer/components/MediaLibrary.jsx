@@ -4,6 +4,7 @@ import ScreenSourcePicker from "./ScreenSourcePicker";
 import CameraPicker from "./CameraPicker";
 import Toast from "./Toast";
 import { useScreenRecording } from "../hooks/useScreenRecording";
+import { useWebcamRecording } from "../hooks/useWebcamRecording";
 
 /**
  * MediaLibrary Component
@@ -29,8 +30,18 @@ function MediaLibrary({
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [notification, setNotification] = useState(null);
+  const [webcamPreviewStream, setWebcamPreviewStream] = useState(null);
+  const webcamPreviewRef = useRef(null);
 
   // Screen recording hook
+  const screenRecording = useScreenRecording();
+  
+  // Webcam recording hook
+  const webcamRecording = useWebcamRecording();
+
+  // Use the appropriate recording hook based on selected source type
+  const activeRecording = selectedSource?.type === "camera" ? webcamRecording : screenRecording;
+  
   const {
     isRecording,
     isPaused,
@@ -45,7 +56,7 @@ function MediaLibrary({
     stopRecording,
     toggleMicrophone,
     cleanup,
-  } = useScreenRecording();
+  } = activeRecording;
 
   // Show notification helper
   const showNotification = (message, type = "info") => {
@@ -96,19 +107,36 @@ function MediaLibrary({
     event.stopPropagation();
     if (!selectedSource) return;
 
+    // Clean up preview stream if it exists (for webcam)
+    if (webcamPreviewStream) {
+      webcamPreviewStream.getTracks().forEach(track => track.stop());
+      setWebcamPreviewStream(null);
+    }
+
     // Start recording immediately (no countdown for MVP)
     try {
-      await startRecording(selectedSource.id, {
+      const recordingOptions = {
         bitrate: 2500000, // 2.5 Mbps
         includeMicrophone: isMicEnabled,
-      });
+      };
+
+      // Add webcam-specific options
+      if (selectedSource.type === "camera") {
+        recordingOptions.width = 1280;
+        recordingOptions.height = 720;
+        recordingOptions.frameRate = 30;
+      }
+
+      await startRecording(selectedSource.id, recordingOptions);
     } catch (error) {
       console.error("Failed to start recording:", error);
       
+      const recordingType = selectedSource.type === "camera" ? "Webcam" : "Screen";
+      
       if (error.message.includes("Permission denied")) {
-        showNotification("Screen recording permission denied. Please allow screen recording in your system settings.", "error");
+        showNotification(`${recordingType} recording permission denied. Please allow access in your system settings.`, "error");
       } else if (error.message.includes("not allowed")) {
-        showNotification("Screen recording not allowed. Check your browser/system permissions.", "error");
+        showNotification(`${recordingType} recording not allowed. Check your browser/system permissions.`, "error");
       } else {
         showNotification("Failed to start recording. Please try again.", "error");
       }
@@ -154,7 +182,8 @@ function MediaLibrary({
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
-      const filename = `screen-recording-${year}-${month}-${day}-${hours}-${minutes}-${seconds}.webm`;
+      const prefix = selectedSource?.type === "camera" ? "webcam-recording" : "screen-recording";
+      const filename = `${prefix}-${year}-${month}-${day}-${hours}-${minutes}-${seconds}.webm`;
       
       console.log("Saving recording as:", filename);
       showNotification("Saving and processing recording...", "info");
@@ -196,6 +225,20 @@ function MediaLibrary({
     }
   };
 
+  const handleCancelRecording = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Clean up preview stream
+    if (webcamPreviewStream) {
+      webcamPreviewStream.getTracks().forEach(track => track.stop());
+      setWebcamPreviewStream(null);
+    }
+    
+    // Clear selected source
+    setSelectedSource(null);
+  };
+
   // Show recording errors from hook
   useEffect(() => {
     if (recordingError) {
@@ -207,23 +250,56 @@ function MediaLibrary({
   useEffect(() => {
     return () => {
       cleanup();
+      
+      // Clean up webcam preview stream
+      if (webcamPreviewStream) {
+        webcamPreviewStream.getTracks().forEach(track => track.stop());
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Update video preview when stream changes
+  useEffect(() => {
+    if (webcamPreviewRef.current && webcamPreviewStream) {
+      webcamPreviewRef.current.srcObject = webcamPreviewStream;
+    }
+  }, [webcamPreviewStream]);
 
   const handleScreenSourcePickerClose = () => {
     setIsScreenSourcePickerOpen(false);
   };
 
-  const handleCameraSelect = (camera) => {
+  const handleCameraSelect = async (camera) => {
     console.log("Camera selected:", camera);
-    setSelectedSource({
-      id: camera.deviceId,
-      name: camera.label || `Camera ${camera.deviceId}`,
-      type: "camera",
-      device: camera
-    });
-    setIsCameraPickerOpen(false);
+    
+    // Start preview stream for the selected camera
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          deviceId: { exact: camera.deviceId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      
+      setWebcamPreviewStream(stream);
+      setSelectedSource({
+        id: camera.deviceId,
+        name: camera.label || `Camera ${camera.deviceId}`,
+        type: "camera",
+        device: camera
+      });
+      setIsCameraPickerOpen(false);
+      
+      // Set the preview stream on the video element
+      if (webcamPreviewRef.current) {
+        webcamPreviewRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error("Failed to start webcam preview:", error);
+      showNotification("Failed to access camera. Please check permissions.", "error");
+    }
   };
 
   const handleCameraPickerClose = () => {
@@ -449,6 +525,21 @@ function MediaLibrary({
                 </span>
               )}
             </div>
+            
+            {/* Webcam Preview (shown before recording starts) */}
+            {selectedSource.type === "camera" && !isRecording && webcamPreviewStream && (
+              <div className="webcam-preview-container">
+                <video
+                  ref={webcamPreviewRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="webcam-preview"
+                />
+                <div className="preview-label">Preview</div>
+              </div>
+            )}
+            
             <div className="recording-buttons">
               {!isRecording ? (
                 <>
@@ -467,6 +558,13 @@ function MediaLibrary({
                     disabled={isProcessing}
                   >
                     ▶ Start Recording
+                  </button>
+                  <button
+                    className="btn-cancel"
+                    onClick={handleCancelRecording}
+                    disabled={isProcessing}
+                  >
+                    Cancel
                   </button>
                 </>
               ) : (

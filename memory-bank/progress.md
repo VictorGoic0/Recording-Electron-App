@@ -1,31 +1,37 @@
 # Progress: ClipCreate
 
-## Current Status: PR #5 Complete - Timeline UI Implemented
+## Current Status: PR #8 In Progress - Webcam Recording (2/7 complete)
 
 ### What Works (Completed)
 
-- ✅ PR #1: Project Setup & Foundation (7/8 subtasks - app working)
-- ✅ PR #2: FFmpeg Integration (all subtasks)
-- ✅ PR #3: Video Import & Media Library (all subtasks)
-- ✅ PR #4: Video Preview Player (all subtasks including volume, keyboard shortcuts, edge cases)
-- ✅ PR #5: Basic Timeline UI (all 10 subtasks)
-  - Timeline component with tracks
-  - Time ruler with zoom-based markers
-  - Draggable playhead
-  - Drag & drop from media library
-  - Clip rendering on timeline
-  - Zoom controls (buttons + slider)
-  - Horizontal scrolling
-  - Playhead sync with video player
-  - Trim handles on clips (left/right edge dragging)
-  - Visual trim handles with drag-to-trim functionality
+- ✅ PR #1: Project Setup & Foundation (complete)
+- ✅ PR #2: FFmpeg Integration (complete with duration fix)
+- ✅ PR #3: Video Import & Media Library (complete)
+- ✅ PR #4: Video Preview Player (complete with all controls)
+- ✅ PR #5: Basic Timeline UI (complete with all features)
+- ✅ PR #6: Trim & Export (complete - MVP achieved!)
+- ✅ PR #7: Screen Recording (complete - all 10 subtasks)
+  - Record button with dropdown (Screen/Webcam/Both options)
+  - Screen source picker with thumbnails
+  - MediaRecorder with VP9/VP8 codecs
+  - Recording controls (Start/Stop/Pause/Resume)
+  - Real-time timer display
+  - Microphone audio toggle with visual feedback
+  - Auto-save to Videos folder
+  - FFmpeg post-processing to fix WebM duration
+  - Auto-import to media library
+  - Error handling with toast notifications
 
 ### What's In Progress
 
-- 🔄 PR #6: Trim & Export (In Progress - MVP Completion)
-  - ✅ Subtask 1: Trim handles on clips (left/right edge dragging)
-  - ⏳ Need to: Add export functionality (FFmpeg)
-  - Need to: Complete MVP requirements
+- 🔄 PR #8: Webcam Recording (2/7 complete)
+  - ✅ Subtask 1: Camera source selection with live previews
+  - ✅ Subtask 2: MediaRecorder setup for webcam
+  - 🔄 Subtask 3: Show webcam preview before recording
+  - 🔄 Subtask 4: Recording controls (reusing screen recording UI)
+  - ⏳ Subtask 5: Save webcam recording (already working)
+  - ⏳ Subtask 6: Handle webcam errors
+  - ⏳ Subtask 7: Camera settings (stretch goal)
 
 ### What's Next
 

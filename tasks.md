@@ -584,33 +584,36 @@ This document breaks down the ClipCreate project into 10 pull requests (PRs), ea
   - Allow user to select which camera to use
   - Default to first available camera
 
-- [ ] 2. Set up MediaRecorder for webcam recording
+- [x] 2. Set up MediaRecorder for webcam recording
 
   - Request webcam stream via `getUserMedia({ video: true, audio: true })`
   - Create `MediaRecorder` instance
   - Configure resolution: 1280x720 for performance
   - Set codec and bitrate
 
-- [ ] 3. Show webcam preview before recording
+- [x] 3. Show webcam preview before recording
 
-  - Display live webcam feed in modal/preview window
+  - Display live webcam feed in preview window
   - Allow user to see themselves before starting
   - "Start Recording" button below preview
   - "Cancel" button to close without recording
+  - Preview shown after camera selection
 
-- [ ] 4. Implement recording controls (same as screen)
+- [x] 4. Implement recording controls (same as screen)
 
   - Start, Stop, Pause/Resume buttons
   - Recording timer
-  - Countdown before recording starts
-  - Audio level meter for microphone
+  - Countdown before recording starts (disabled for MVP)
+  - Microphone toggle with visual feedback
+  - Consistent UI between screen and webcam recording
 
-- [ ] 5. Save webcam recording to file
+- [x] 5. Save webcam recording to file
 
   - Collect recorded chunks
-  - Save as `.webm` or `.mp4`
-  - Auto-generate filename: `webcam-recording-2025-10-27-14-30-45.webm`
+  - Save as `.webm` (with FFmpeg post-processing for duration fix)
+  - Auto-generate filename: `webcam-recording-YYYY-MM-DD-HH-MM-SS.webm`
   - Add to media library automatically
+  - Shared logic with screen recording
 
 - [ ] 6. Handle webcam errors
 

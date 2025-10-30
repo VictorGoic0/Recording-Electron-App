@@ -84,6 +84,7 @@ Timeline State → IPC → Main Process → FFmpeg Filter Chain → Encode → F
 - **React Context**: App-wide timeline/media state
 - **Local State**: Component-specific UI state
 - **Derived State**: Computed values (total duration, zoom scale)
+- **Custom Hooks**: Separate hooks for screen vs webcam recording
 
 ### FFmpeg Integration
 
@@ -91,6 +92,15 @@ Timeline State → IPC → Main Process → FFmpeg Filter Chain → Encode → F
 - **Wrapper Service**: fluent-ffmpeg abstraction
 - **Path Resolution**: Platform-specific binary detection
 - **Progress Parsing**: Extract % from FFmpeg output
+- **Post-Processing**: WebM duration fix via remux
+
+### Recording Architecture
+
+- **Hook Pattern**: `useScreenRecording` and `useWebcamRecording` custom hooks
+- **MediaRecorder API**: WebM output with VP9/VP8 codecs
+- **Stream Management**: Separate video and audio streams, combined for recording
+- **Shared UI**: Recording controls reuse same component regardless of source type
+- **Auto-Import**: Recordings automatically processed and added to media library
 
 ## Module Organization
 
