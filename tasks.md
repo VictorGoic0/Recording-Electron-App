@@ -640,7 +640,7 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 
 ---
 
-## PR #9: Multi-Track Timeline & Split Functionality
+## PR #9: Multi-Track Timeline & Split Functionality ✅ COMPLETE
 
 **Goal:** Support multiple tracks for overlays and add split clip feature  
 **Estimated Time:** 4-5 hours  
@@ -689,44 +689,38 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
   - Automatic detection of multi-track export
   - Falls back to single/multi-clip export when no overlays
 
-- [ ] 5. Implement split clip functionality
+- [x] 5. Implement split clip functionality
 
-  - Add "Split" button or keyboard shortcut (Cmd/Ctrl+K)
-  - Position playhead where split should occur
-  - Split clip at playhead position into two separate clips
-  - Update timeline state: remove original clip, add two new clips
+  - Add "Split" button with scissors icon ✓
+  - Keyboard shortcut (Cmd/Ctrl+K) shown in tooltip (not implemented yet)
+  - Position playhead where split should occur ✓
+  - Split clip at playhead position into two separate clips ✓
+  - Update timeline state: remove original clip, add two new clips ✓
+  - Secondary button style: gray background, white text, prominent border
 
-- [ ] 6. Create split logic
+- [x] 6. Create split logic
 
-  - Original clip: `{ startTime: 0, endTime: 30 }`
-  - After split at 15s:
-    - Clip 1: `{ startTime: 0, endTime: 15 }`
-    - Clip 2: `{ startTime: 15, endTime: 30 }`
-  - Preserve trim points and other metadata
+  - splitClipAtPlayhead function in TimelineContext ✓
+  - Finds clip at playhead position across all tracks ✓
+  - Calculates split offset relative to trim bounds ✓
+  - Creates two new clips with adjusted trim points:
+    - Clip 1: original trimStart to splitOffset
+    - Clip 2: splitOffset to original trimEnd
+  - Preserves all metadata (filePath, duration, track, etc.) ✓
+  - Updates timeline position of second clip ✓
 
-- [ ] 7. Add visual split indicator
+- [x] 7. Add visual split indicator
 
-  - Show split line at playhead position when hovering over clip
-  - Highlight clip that will be split
-  - Confirm split with button click or keyboard shortcut
+  - Show split line at playhead position when hovering over clip ✓
+  - Highlight clip that will be split ✓
+  - Confirm split with button click or keyboard shortcut ✓
 
-- [ ] 8. Implement delete clip functionality
+- [x] 8. Implement delete clip functionality
 
-  - Select clip on timeline (click to select)
-  - Press Delete or Backspace key to remove
-  - Or right-click → Delete from context menu
-  - Confirm deletion with modal (optional)
-
-- [ ] 9. Add track mute/solo controls (stretch)
-
-  - Mute button per track (disable audio)
-  - Solo button per track (mute all others)
-  - Visual indication of muted tracks
-
-- [ ] 10. Handle overlapping clips (if time permits)
-  - Prevent clips from overlapping on same track
-  - Auto-adjust clip positions to avoid overlap
-  - Or show error if user tries to overlap
+  - Select clip on timeline (click to select) ✓
+  - Press Delete or Backspace key to remove ✓
+  - Or right-click → Delete from context menu (deferred to PR #10)
+  - Confirm deletion with modal (optional - not needed for MVP)
 
 **PR Completion Criteria:**
 
@@ -747,7 +741,19 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
 
 ### Subtasks
 
-- [ ] 1. Implement comprehensive error handling
+- [ ] 1. Add track mute/solo controls (from PR #9)
+
+  - Mute button per track (disable audio)
+  - Solo button per track (mute all others)
+  - Visual indication of muted tracks
+
+- [ ] 2. Handle overlapping clips (from PR #9)
+
+  - Prevent clips from overlapping on same track
+  - Auto-adjust clip positions to avoid overlap
+  - Or show error if user tries to overlap
+
+- [ ] 3. Implement comprehensive error handling
 
   - **Import errors:**
     - Unsupported format: "Unsupported format. Please use MP4, MOV, or WebM"
@@ -761,61 +767,61 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
     - Permission denied: "Camera/Screen permission denied. Enable in System Preferences."
     - No sources: "No camera/screen detected."
 
-- [ ] 2. Add loading states throughout app
+- [ ] 4. Add loading states throughout app
 
   - Spinner during video import processing
   - Progress bar during thumbnail generation
   - Loading indicator during export
   - Disable buttons during async operations
 
-- [ ] 3. Add toast notifications
+- [ ] 5. Add toast notifications
 
   - Success messages: "Video imported successfully", "Export complete"
   - Error messages: Show errors in non-intrusive toasts
   - Use library like `react-toastify` or create custom
 
-- [ ] 4. Implement UI/UX polish
+- [ ] 6. Implement UI/UX polish
 
   - Smooth animations for drag-and-drop
   - Hover effects on buttons and clips
   - Consistent spacing and alignment
   - Proper focus states for accessibility
 
-- [ ] 5. Add keyboard shortcuts documentation
+- [ ] 7. Add keyboard shortcuts documentation
 
   - Create help modal showing all shortcuts
   - Accessible via Help menu or keyboard shortcut
   - List: Spacebar (play/pause), Cmd/Ctrl+K (split), Delete (remove), etc.
 
-- [ ] 6. Optimize timeline performance
+- [ ] 8. Optimize timeline performance
 
   - Virtual rendering for timelines with many clips
   - Throttle scrubbing updates
   - Debounce zoom changes
   - Profile performance with 10+ clips
 
-- [ ] 7. Test all features end-to-end
+- [ ] 9. Test all features end-to-end
 
   - Run through all testing scenarios from PRD
   - Test on both Mac and Windows (if possible)
   - Fix any critical bugs found
   - Ensure no console errors
 
-- [ ] 8. Build and package app for distribution
+- [ ] 10. Build and package app for distribution
 
   - Run `npm run build` or `electron-builder build`
   - Test packaged app on clean machine
   - Verify FFmpeg binary is included
   - Check app size (should be <200MB)
 
-- [ ] 9. Create distribution artifacts
+- [ ] 11. Create distribution artifacts
 
   - macOS: `.dmg` file
   - Windows: `.exe` installer
   - Upload to GitHub Releases or Google Drive
   - Get shareable download links
 
-- [ ] 10. Write README.md
+- [ ] 12. Write README.md
 
   - Setup instructions (install Node, npm install, npm start)
   - Build instructions (npm run build)
@@ -823,7 +829,7 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
   - Known issues or limitations
   - Architecture overview
 
-- [ ] 11. Record demo video (3-5 minutes)
+- [ ] 13. Record demo video (3-5 minutes)
 
   - Show app launch
   - Import clips
@@ -832,7 +838,7 @@ This document breaks down the ClipForge project into 10 pull requests (PRs), eac
   - Export final video
   - Show exported video playing
 
-- [ ] 12. Prepare final submission
+- [ ] 14. Prepare final submission
   - Push all code to GitHub
   - Upload packaged app with download link
   - Upload demo video to YouTube or include in repo

@@ -124,6 +124,55 @@ export const TimelineProvider = ({ children }) => {
     return null;
   };
 
+  const splitClipAtPlayhead = (clipId, trackId, splitTime) => {
+    setTracks((prevTracks) =>
+      prevTracks.map((track) => {
+        if (track.id !== trackId) return track;
+
+        const clipIndex = track.clips.findIndex((c) => c.id === clipId);
+        if (clipIndex === -1) return track;
+
+        const originalClip = track.clips[clipIndex];
+        
+        // Calculate split position relative to the clip's trim bounds
+        const trimStart = originalClip.trimStart || 0;
+        const trimEnd = originalClip.trimEnd || originalClip.duration;
+        const clipStartTime = originalClip.position;
+        const clipEndTime = originalClip.position + (trimEnd - trimStart);
+        
+        // Verify split is within clip bounds
+        if (splitTime <= clipStartTime || splitTime >= clipEndTime) {
+          console.warn("Split time is outside clip bounds");
+          return track;
+        }
+
+        // Calculate the split offset relative to the original video
+        const splitOffset = trimStart + (splitTime - clipStartTime);
+
+        // Create first clip (before split)
+        const clip1 = {
+          ...originalClip,
+          id: uuidv4(),
+          trimEnd: splitOffset,
+        };
+
+        // Create second clip (after split)
+        const clip2 = {
+          ...originalClip,
+          id: uuidv4(),
+          position: splitTime,
+          trimStart: splitOffset,
+        };
+
+        // Replace original clip with two new clips
+        const newClips = [...track.clips];
+        newClips.splice(clipIndex, 1, clip1, clip2);
+
+        return { ...track, clips: newClips };
+      })
+    );
+  };
+
   const value = {
     // State
     playhead,
@@ -142,6 +191,7 @@ export const TimelineProvider = ({ children }) => {
     updateClipPosition,
     updateClipTrim,
     selectTimelineClip,
+    splitClipAtPlayhead,
   };
 
   return <TimelineContext.Provider value={value}>{children}</TimelineContext.Provider>;

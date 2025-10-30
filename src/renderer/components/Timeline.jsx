@@ -7,9 +7,10 @@ import ExportModal from "./ExportModal";
  * Clip Component with Trim Handles
  * Individual clip on the timeline with left/right trim handles
  */
-function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
+function TimelineClip({ clip, zoom, scale, maxDuration = 60, playhead, maxTimelineDuration }) {
   const { updateClipTrim, updateClipPosition, selectTimelineClip, selectedTimelineClipId } = useTimeline();
   const [isTrimming, setIsTrimming] = useState(null); // 'left' or 'right'
+  const [isHovering, setIsHovering] = useState(false);
   const dragStartRef = useRef(null);
   
   // Local visual state during drag (no context updates until release)
@@ -111,6 +112,19 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
     selectTimelineClip(clip.id);
   };
 
+  // Calculate if playhead is within this clip for split indicator
+  const trimStart = clip.trimStart || 0;
+  const trimEnd = clip.trimEnd || clip.duration;
+  const clipStartTime = clip.position;
+  const clipEndTime = clip.position + (trimEnd - trimStart);
+  const playheadTime = playhead * maxTimelineDuration;
+  const isPlayheadInClip = playheadTime > clipStartTime && playheadTime < clipEndTime;
+  
+  // Calculate split indicator position relative to clip
+  const splitIndicatorPosition = isPlayheadInClip && isHovering 
+    ? ((playheadTime - clipStartTime) / (clipEndTime - clipStartTime)) * 100 
+    : null;
+
   return (
     <div
       className={clipClassName}
@@ -120,6 +134,8 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
       }}
       title={`${clip.filename} (${displayWidth.toFixed(1)}s)`}
       onClick={handleClipClick}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
       {/* Left trim handle */}
       <div
@@ -132,6 +148,15 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60 }) {
         onMouseDown={(e) => handleTrimMouseDown(e, 'right')}
       />
       <div className="clip-label">{clip.filename}</div>
+      
+      {/* Split indicator - shows when hovering and playhead is within clip */}
+      {splitIndicatorPosition !== null && (
+        <div 
+          className="split-indicator"
+          style={{ left: `${splitIndicatorPosition}%` }}
+          title="Split here"
+        />
+      )}
     </div>
   );
 }
@@ -146,7 +171,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   const [draggedOverTrack, setDraggedOverTrack] = useState(null);
   const [timelineWidth, setTimelineWidth] = useState(600);
   const timelineContentRef = useRef(null);
-  const { tracks, addClipToTimeline } = useTimeline();
+  const { tracks, addClipToTimeline, splitClipAtPlayhead, removeClipFromTimeline, selectedTimelineClipId } = useTimeline();
 
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false);
@@ -402,6 +427,92 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
     console.log("Export cancelled");
   };
 
+  const handleSplit = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Convert playhead (0-1) to actual timeline time in seconds
+    const splitTime = playhead * maxTimelineDuration;
+    
+    // Find clip at playhead position on each track
+    let clipToSplit = null;
+    let trackId = null;
+    
+    for (const track of tracks) {
+      for (const clip of track.clips) {
+        const trimStart = clip.trimStart || 0;
+        const trimEnd = clip.trimEnd || clip.duration;
+        const clipStartTime = clip.position;
+        const clipEndTime = clip.position + (trimEnd - trimStart);
+        
+        // Check if playhead is within this clip
+        if (splitTime > clipStartTime && splitTime < clipEndTime) {
+          clipToSplit = clip;
+          trackId = track.id;
+          break;
+        }
+      }
+      if (clipToSplit) break;
+    }
+    
+    if (!clipToSplit) {
+      alert("No clip found at playhead position");
+      return;
+    }
+    
+    // Perform the split
+    splitClipAtPlayhead(clipToSplit.id, trackId, splitTime);
+    console.log(`Split clip ${clipToSplit.filename} at ${splitTime}s`);
+  };
+
+  const handleDeleteClip = () => {
+    if (!selectedTimelineClipId) {
+      console.log("No clip selected to delete");
+      return;
+    }
+
+    // Find the selected clip and its track
+    let clipToDelete = null;
+    let trackId = null;
+
+    for (const track of tracks) {
+      const clip = track.clips.find((c) => c.id === selectedTimelineClipId);
+      if (clip) {
+        clipToDelete = clip;
+        trackId = track.id;
+        break;
+      }
+    }
+
+    if (!clipToDelete || !trackId) {
+      console.error("Selected clip not found in tracks");
+      return;
+    }
+
+    // Remove the clip
+    removeClipFromTimeline(selectedTimelineClipId, trackId);
+    console.log(`Deleted clip ${clipToDelete.filename} from ${trackId} track`);
+  };
+
+  // Keyboard event handler for Delete/Backspace keys
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Only handle Delete/Backspace when timeline is in focus
+      // and not typing in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        handleDeleteClip();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedTimelineClipId, tracks]);
+
   return (
     <div className="timeline-component">
       <div className="panel-header">
@@ -409,6 +520,9 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
         <div className="timeline-controls">
           <button className="btn-export" title="Export" onClick={handleExport}>
             📤 <span>Export</span>
+          </button>
+          <button className="btn-split" title="Split Clip (Ctrl/Cmd+K)" onClick={handleSplit}>
+            ✂️ <span>Split</span>
           </button>
           <button className="btn-icon" title="Zoom In" onClick={() => setZoom(Math.min(zoom + 0.5, 10))}>
             +
@@ -477,7 +591,15 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
               >
                 {/* Render clips for Main track */}
                 {tracks.find((t) => t.id === "main")?.clips.map((clip) => (
-                  <TimelineClip key={clip.id} clip={clip} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
+                  <TimelineClip 
+                    key={clip.id} 
+                    clip={clip} 
+                    zoom={zoom} 
+                    scale={scale} 
+                    maxDuration={maxTimelineDuration}
+                    playhead={playhead}
+                    maxTimelineDuration={maxTimelineDuration}
+                  />
                 ))}
                 <div 
                   className="playhead-line" 
@@ -496,7 +618,15 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
               >
                 {/* Render clips for Overlay track */}
                 {tracks.find((t) => t.id === "overlay")?.clips.map((clip) => (
-                  <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
+                  <TimelineClip 
+                    key={clip.id} 
+                    clip={{ ...clip, type: 'overlay' }} 
+                    zoom={zoom} 
+                    scale={scale} 
+                    maxDuration={maxTimelineDuration}
+                    playhead={playhead}
+                    maxTimelineDuration={maxTimelineDuration}
+                  />
                 ))}
                 <div 
                   className="playhead-line" 
@@ -515,7 +645,15 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
               >
                 {/* Render clips for Overlay 2 track */}
                 {tracks.find((t) => t.id === "overlay2")?.clips.map((clip) => (
-                  <TimelineClip key={clip.id} clip={{ ...clip, type: 'overlay' }} zoom={zoom} scale={scale} maxDuration={maxTimelineDuration} />
+                  <TimelineClip 
+                    key={clip.id} 
+                    clip={{ ...clip, type: 'overlay' }} 
+                    zoom={zoom} 
+                    scale={scale} 
+                    maxDuration={maxTimelineDuration}
+                    playhead={playhead}
+                    maxTimelineDuration={maxTimelineDuration}
+                  />
                 ))}
                 <div 
                   className="playhead-line" 

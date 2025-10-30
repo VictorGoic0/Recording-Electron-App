@@ -252,6 +252,30 @@
   border-bottom-right-radius: 4px;
 }
 
+/* Split Indicator */
+.split-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #ffcc00;
+  z-index: 12;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
+  animation: pulse-split 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-split {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 20px rgba(255, 204, 0, 1);
+  }
+}
+
 /* Playhead Line */
 .playhead-line {
   position: absolute;

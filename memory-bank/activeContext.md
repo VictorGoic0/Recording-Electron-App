@@ -1,75 +1,83 @@
-# Active Context: ClipForge
+# Active Context: ClipCreate
 
 ## Current Work Focus
 
-**Phase**: Final Features (Wednesday Deadline)
+**Phase**: Final Polish (Wednesday Deadline)
 **Date**: October 30, 2025
-**Current PR**: PR #9 - Multi-Track Timeline & Split Functionality (Starting subtask 1)
+**Current PR**: PR #9 - Multi-Track Timeline & Split (6/7 subtasks complete)
 
 ## What I'm Working On Right Now
 
-MVP complete! PRs #1-8 fully functional including both screen and webcam recording. Now implementing multi-track timeline support to enable video overlays and picture-in-picture compositions.
+MVP and all major features COMPLETE! PRs #1-8 fully functional. PR #9 multi-track timeline with overlays and split functionality is working. Only remaining work is PR #10 (polish/packaging) and optional stretch goals.
 
 **Current Status:**
 
-- Full video editing pipeline working (import, timeline, trim, export)
-- Screen recording fully functional with all features
-- Webcam recording fully functional with camera settings
-- WebM duration metadata fix applied (FFmpeg post-processing)
-- Error boundary preventing app crashes
-- All recordings auto-import to media library
+- Full video editing pipeline working
+- Screen + Webcam recording with camera settings
+- Multi-track timeline (3 tracks) with drag & drop
+- Picture-in-picture preview and export
+- Split clip functionality
+- All recordings auto-import with FFmpeg duration fix
 
-## Recent Changes (PR #8 - COMPLETE)
+## Recent Changes (PR #9 - Multi-Track & Split)
 
-**PR #8 - Webcam Recording (COMPLETE - all 7 subtasks):**
+**Completed Features:**
 
-- ✅ Camera picker with live previews
-- ✅ MediaRecorder setup with getUserMedia
-- ✅ Combined webcam video + microphone audio
-- ✅ Webcam preview before recording with live video
-- ✅ Recording controls consistent with screen recording
-- ✅ Comprehensive error handling (6 error types: permission, not found, in use, overconstrained, abort, generic)
-- ✅ Camera settings: resolution (720p/1080p), frame rate (30fps/60fps), mirror toggle
-- ✅ Live preview updates when settings change
-- ✅ Auto-save with FFmpeg post-processing
-- ✅ Cancel button to exit preview
+- ✅ 3-track timeline (Main, Overlay, Overlay 2)
+- ✅ Enhanced drag & drop with visual feedback (pulsing, borders, label highlighting)
+- ✅ Multi-track preview rendering with synchronized playback
+- ✅ Multi-track export with FFmpeg overlay filters
+- ✅ Split clip functionality with button UI and context function
+- ✅ Export button redesign (green background, icon left, white text)
+- ✅ Split button design (gray background, border, icon left)
 
-**Key Technical Implementation:**
+**Technical Implementation:**
 
-- Separate hooks for screen vs webcam recording
-- Shared UI components for recording controls
-- Dynamic stream recreation on settings change
-- CSS transform for mirror effect
-- Fixed-width dropdowns with proper text visibility
+- Overlay rendering: 25% width, positioned in corners
+- FFmpeg complex filters: `scale=iw*0.25:-1` and `overlay=x:y`
+- Split logic: calculates offsets relative to trim bounds
+- Synchronized video playback: 100ms interval sync across all overlay videos
+- Multi-track detection in export service
+
+**Bug Fixes:**
+
+- Fixed overlayClips initialization order (ReferenceError)
+- Fixed overlay preview visibility condition
+- Fixed dropdown text colors and width constraints
 
 ## Immediate Next Steps
 
-1. **PR #9 Subtask 1**: Expand timeline to support 2-3 tracks (IN PROGRESS)
-2. **Remaining PR #9**: Overlay rendering, split functionality, track management
-3. **PR #10**: Final polish and packaging
-4. **Demo Video**: Showcase all features
+1. **PR #10**: Polish & Packaging
+   - Final UI polish
+   - Build distributable
+   - Test on Windows/Mac
+   - Create demo video
+2. **Optional**: Visual split indicator (stretch)
+3. **Optional**: Keyboard shortcuts (Ctrl/Cmd+K for split)
 
 ## Active Decisions
 
-- **Recording Pattern**: Separate hooks for screen vs webcam, shared UI controls
-- **Duration Fix**: Post-process all WebM files with FFmpeg remux
-- **Error Strategy**: Toast notifications + Error Boundary for crashes
-- **Codec Priority**: VP9 → VP8 → WebM fallback
-- **Multi-Track**: 2-3 tracks with overlay support, track selection UI
+- **Multi-track**: 3 tracks maximum (Main + 2 overlays)
+- **Overlay positioning**: Fixed positions (bottom-right, bottom-left)
+- **Split**: Click-to-split (keyboard shortcut stretch goal)
+- **Button hierarchy**: Green (Export), Blue (Import), Red (Record), Gray (Split)
 
 ## Blockers/Challenges
 
-- None currently
-- Recording features complete, moving to timeline enhancements
+- None currently - all core features working!
 
 ## Active Files
 
-- `src/renderer/components/Timeline.jsx` - Timeline UI (multi-track implementation)
-- `src/renderer/context/TimelineContext.jsx` - Timeline state management
+- `src/renderer/components/Timeline.jsx` - Timeline UI with split button
+- `src/renderer/context/TimelineContext.jsx` - Split logic
+- `src/renderer/components/VideoPlayer.jsx` - Multi-track preview rendering
+- `src/main/services/exportService.js` - Multi-track export with FFmpeg
+- `src/renderer/App.css` - Button styles (Export, Split)
 - `tasks.md` - Progress tracking
 
 ## Current Priorities
 
-1. **PR #9** - Multi-track & split (Wednesday deadline)
-2. **PR #10** - Polish & packaging
+1. **Complete PR #9** - Add visual split indicator (optional)
+2. **PR #10** - Final polish and packaging
 3. **Demo Video** - Showcase all features
+4. **Submission** - Wednesday 10:59 PM CT deadline
