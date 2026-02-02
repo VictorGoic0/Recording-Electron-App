@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./MediaLibrary.css";
-import ScreenSourcePicker from "./ScreenSourcePicker";
+import ScreenSourcePicker from "../ScreenSourcePicker/ScreenSourcePicker";
 import CameraPicker from "./CameraPicker";
 import Toast from "./Toast";
-import { useScreenRecording } from "../hooks/useScreenRecording";
-import { useWebcamRecording } from "../hooks/useWebcamRecording";
+import { useScreenRecording } from "../../hooks/useScreenRecording";
+import { useWebcamRecording } from "../../hooks/useWebcamRecording";
 
 /**
  * MediaLibrary Component
