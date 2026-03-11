@@ -5,22 +5,18 @@ import CameraPicker from "../CameraPicker/CameraPicker";
 import Toast from "../Toast/Toast";
 import { useScreenRecording } from "../../hooks/useScreenRecording";
 import { useWebcamRecording } from "../../hooks/useWebcamRecording";
+import { useMediaStore } from "../../store/mediaStore";
 
 /**
  * MediaLibrary Component
  * Displays imported video clips in a grid layout with thumbnails
  * Handles file import via button click or drag-and-drop
  */
-function MediaLibrary({ 
-  clips = [], 
-  onImport,
-  onProcessFiles,
-  onClipSelect, 
-  selectedClipId,
-  onRemoveClip,
-  onRevealInExplorer,
-  isProcessing = false
-}) {
+function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
+  const clips = useMediaStore((s) => s.clips);
+  const selectedClipId = useMediaStore((s) => s.selectedClipId);
+  const selectClip = useMediaStore((s) => s.selectClip);
+  const removeMedia = useMediaStore((s) => s.removeMedia);
   const [isDragging, setIsDragging] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [isRecordDropdownOpen, setIsRecordDropdownOpen] = useState(false);
@@ -352,8 +348,15 @@ function MediaLibrary({
   };
 
   const handleClipClick = (clip) => {
-    if (onClipSelect) {
-      onClipSelect(clip);
+    selectClip(clip.id);
+  };
+
+  const handleRevealInExplorer = async (filePath) => {
+    if (!filePath) return;
+    try {
+      await window.electron.fileSystem.revealInExplorer(filePath);
+    } catch (error) {
+      console.error("Failed to reveal file in explorer:", error);
     }
   };
 
@@ -436,8 +439,8 @@ function MediaLibrary({
   const handleRemoveClick = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (contextMenu && onRemoveClip) {
-      onRemoveClip(contextMenu.clip.id);
+    if (contextMenu) {
+      removeMedia(contextMenu.clip.id);
     }
     closeContextMenu();
   };
@@ -445,8 +448,8 @@ function MediaLibrary({
   const handleRevealClick = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (contextMenu && onRevealInExplorer) {
-      onRevealInExplorer(contextMenu.clip.filePath);
+    if (contextMenu) {
+      handleRevealInExplorer(contextMenu.clip.filePath);
     }
     closeContextMenu();
   };

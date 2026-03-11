@@ -6,20 +6,12 @@ import Timeline from "./components/Timeline/Timeline";
 import Toast from "./components/Toast/Toast";
 import KeyboardShortcutsModal from "./components/KeyboardShortcutsModal/KeyboardShortcutsModal";
 import { v4 as uuidv4 } from "uuid";
-import { useMediaStore } from "./store/mediaStore";
+import { useImport } from "./hooks/useImport";
 
 function App() {
-  const clips = useMediaStore((s) => s.clips);
-  const selectedClipId = useMediaStore((s) => s.selectedClipId);
-  const addMultipleMedia = useMediaStore((s) => s.addMultipleMedia);
-  const selectClip = useMediaStore((s) => s.selectClip);
-  const removeMedia = useMediaStore((s) => s.removeMedia);
-
-  const [isProcessing, setIsProcessing] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
-  // Toast notification helper
   const showToast = (message, type = "info") => {
     const id = uuidv4();
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -29,179 +21,20 @@ function App() {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
-  // Prevent default drag-and-drop behavior on the entire app
-  // This prevents files from opening in the Electron window
-  useEffect(() => {
-    const preventDefaults = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-    };
+  const { handleImport, processImportedFiles, isProcessing } = useImport(showToast);
 
-    // Prevent drag and drop on document level
+  useEffect(() => {
+    const preventDefaults = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
     document.addEventListener("dragover", preventDefaults);
     document.addEventListener("drop", preventDefaults);
-
     return () => {
       document.removeEventListener("dragover", preventDefaults);
       document.removeEventListener("drop", preventDefaults);
     };
   }, []);
-
-  const handleImport = async (files) => {
-    console.log("Import requested:", files);
-    
-    // If no files provided (button click), show file picker
-    if (!files) {
-      const result = await window.electron.fileSystem.showOpenDialog();
-      
-      if (result.success && result.filePaths) {
-        console.log("Files selected from dialog:", result.filePaths);
-        await processImportedFiles(result.filePaths);
-      } else if (result.canceled) {
-        console.log("File selection canceled");
-      } else if (result.error) {
-        console.error("Error opening file dialog:", result.error);
-        showToast("Failed to open file dialog", "error");
-      }
-    } else {
-      // Files from drag-and-drop - extract file paths
-      // Use Electron's webUtils to get the real file path from File objects
-      console.log("File objects received:", files);
-      
-      const filePaths = files
-        .map((file) => {
-          try {
-            // Use webUtils.getPathForFile() to get the actual file path
-            const filePath = window.electron.utils.getPathForFile(file);
-            console.log(`File: ${file.name}, path: ${filePath}`);
-            return filePath;
-          } catch (error) {
-            console.error(`Failed to get path for file ${file.name}:`, error);
-            return null;
-          }
-        })
-        .filter((path) => path !== null && path !== undefined && path !== "");
-      
-      console.log("Extracted file paths:", filePaths);
-      
-      if (filePaths.length > 0) {
-        await processImportedFiles(filePaths);
-      } else {
-        console.error("No valid file paths found in dropped files");
-        showToast("No valid video files found", "warning");
-      }
-    }
-  };
-
-  const processImportedFiles = async (filePaths) => {
-    if (filePaths.length === 0) return;
-
-    setIsProcessing(true);
-    const newClips = [];
-    const errors = [];
-    const unsupportedFiles = [];
-
-    console.log(`Processing ${filePaths.length} file(s)...`);
-
-    for (const filePath of filePaths) {
-      try {
-        // Check file extension
-        const ext = filePath.toLowerCase().split(".").pop();
-        if (!["mp4", "mov", "webm"].includes(ext)) {
-          unsupportedFiles.push(filePath);
-          console.warn(`✗ Unsupported format: ${filePath}`);
-          continue;
-        }
-
-        console.log(`Processing: ${filePath}`);
-        
-        // Process the video file using FFmpeg
-        const result = await window.electron.fileSystem.processVideoFile(filePath);
-
-        if (result.success) {
-          // Create clip object with unique ID
-          const clip = {
-            id: uuidv4(),
-            ...result.data,
-          };
-
-          // Log detailed clip information for debugging
-          console.log(`✓ Successfully processed: ${clip.filename}`, {
-            duration: clip.duration,
-            durationType: typeof clip.duration,
-            durationIsFinite: isFinite(clip.duration),
-            resolution: clip.resolution,
-            fileSize: clip.fileSize
-          });
-
-          newClips.push(clip);
-        } else {
-          // Check if it's a corrupted file error
-          if (result.error.includes("Invalid data") || result.error.includes("moov atom not found")) {
-            errors.push({ filePath, error: "File appears to be corrupted or incomplete" });
-          } else {
-            errors.push({ filePath, error: result.error });
-          }
-          console.error(`✗ Failed to process: ${filePath}`, result.error);
-        }
-      } catch (error) {
-        errors.push({ filePath, error: error.message });
-        console.error(`✗ Exception processing: ${filePath}`, error);
-      }
-    }
-
-    if (newClips.length > 0) {
-      addMultipleMedia(newClips);
-      showToast(`Successfully imported ${newClips.length} video${newClips.length > 1 ? "s" : ""}`, "success");
-      console.log(`✓ Added ${newClips.length} clip(s) to library`);
-    }
-
-    // Report unsupported files
-    if (unsupportedFiles.length > 0) {
-      showToast(
-        `${unsupportedFiles.length} file(s) skipped. Unsupported format. Please use MP4, MOV, or WebM`,
-        "warning"
-      );
-    }
-
-    // Report errors
-    if (errors.length > 0) {
-      console.error(`Failed to process ${errors.length} file(s):`, errors);
-      const errorMessage = errors.length === 1
-        ? `Failed to import "${errors[0].filePath.split(/[\\/]/).pop()}": ${errors[0].error}`
-        : `Failed to import ${errors.length} file(s). Check console for details.`;
-      showToast(errorMessage, "error");
-    }
-
-    setIsProcessing(false);
-  };
-
-  const handleClipSelect = (clip) => {
-    selectClip(clip.id);
-    console.log("Clip selected:", clip);
-  };
-
-  const handleRemoveClip = (clipId) => {
-    const clip = clips.find((c) => c.id === clipId);
-    if (clip) {
-      console.log("Removing clip from library:", clip.filename);
-      removeMedia(clipId);
-    }
-  };
-
-  const handleRevealInExplorer = async (filePath) => {
-    if (!filePath) {
-      console.error("No file path provided");
-      return;
-    }
-    
-    try {
-      await window.electron.fileSystem.revealInExplorer(filePath);
-      console.log("Revealed file in explorer:", filePath);
-    } catch (error) {
-      console.error("Failed to reveal file in explorer:", error);
-    }
-  };
 
   return (
     <div className="app-container">
@@ -230,13 +63,8 @@ function App() {
         <div className="top-section">
           {/* Media Library - Left Panel */}
           <MediaLibrary
-            clips={clips}
             onImport={handleImport}
             onProcessFiles={processImportedFiles}
-            onClipSelect={handleClipSelect}
-            selectedClipId={selectedClipId}
-            onRemoveClip={handleRemoveClip}
-            onRevealInExplorer={handleRevealInExplorer}
             isProcessing={isProcessing}
           />
 
