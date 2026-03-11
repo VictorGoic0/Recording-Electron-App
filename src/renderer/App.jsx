@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import MediaLibrary from "./components/MediaLibrary";
-import VideoPlayer from "./components/VideoPlayer";
-import Timeline from "./components/Timeline";
-import Toast from "./components/Toast";
-import KeyboardShortcutsModal from "./components/KeyboardShortcutsModal";
+import MediaLibrary from "./components/MediaLibrary/MediaLibrary";
+import VideoPlayer from "./components/VideoPlayer/VideoPlayer";
+import Timeline from "./components/Timeline/Timeline";
+import Toast from "./components/Toast/Toast";
+import KeyboardShortcutsModal from "./components/KeyboardShortcutsModal/KeyboardShortcutsModal";
 import { useMedia } from "./context/MediaContext";
 import { useTimeline } from "./context/TimelineContext";
 import { v4 as uuidv4 } from "uuid";

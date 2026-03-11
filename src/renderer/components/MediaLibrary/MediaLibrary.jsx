@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./MediaLibrary.css";
 import ScreenSourcePicker from "../ScreenSourcePicker/ScreenSourcePicker";
-import CameraPicker from "./CameraPicker";
-import Toast from "./Toast";
+import CameraPicker from "../CameraPicker/CameraPicker";
+import Toast from "../Toast/Toast";
 import { useScreenRecording } from "../../hooks/useScreenRecording";
 import { useWebcamRecording } from "../../hooks/useWebcamRecording";
 

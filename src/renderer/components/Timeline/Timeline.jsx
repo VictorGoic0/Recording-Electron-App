@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./Timeline.css";
 import { useTimeline } from "../../context/TimelineContext";
-import ExportModal from "./ExportModal";
+import ExportModal from "../ExportModal/ExportModal";
 
 /**
  * Clip Component with Trim Handles

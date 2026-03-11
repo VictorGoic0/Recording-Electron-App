@@ -1,6 +1,6 @@
 /* ClipForge - Video Editing App Styles */
 
-@import "./components/Toast.css";
+@import "./components/Toast/Toast.css";
 
 /* ============================================
    CSS Variables - Theme System

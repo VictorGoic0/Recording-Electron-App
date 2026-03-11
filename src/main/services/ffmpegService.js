@@ -27,8 +27,7 @@ function getFFmpegPath() {
   }
 
   if (isDev) {
-    // In development, use local resources folder
-    const platformFolder = platform === "win32" ? "win" : "mac";
+    const platformFolder = platform === "win32" ? "win" : platform === "darwin" ? "mac" : "linux";
     return path.join(
       process.cwd(),
       "resources",
@@ -59,8 +58,7 @@ function getFFprobePath() {
   }
 
   if (isDev) {
-    // In development, use local resources folder
-    const platformFolder = platform === "win32" ? "win" : "mac";
+    const platformFolder = platform === "win32" ? "win" : platform === "darwin" ? "mac" : "linux";
     return path.join(
       process.cwd(),
       "resources",
