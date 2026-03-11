@@ -5,13 +5,16 @@ import VideoPlayer from "./components/VideoPlayer/VideoPlayer";
 import Timeline from "./components/Timeline/Timeline";
 import Toast from "./components/Toast/Toast";
 import KeyboardShortcutsModal from "./components/KeyboardShortcutsModal/KeyboardShortcutsModal";
-import { useMedia } from "./context/MediaContext";
-import { useTimeline } from "./context/TimelineContext";
 import { v4 as uuidv4 } from "uuid";
+import { useMediaStore } from "./store/mediaStore";
 
 function App() {
-  const { clips, selectedClipId, selectedClip, addMultipleMedia, selectClip, removeMedia } = useMedia();
-  const { playhead, setPlayhead, tracks, zoom, selectedTimelineClip } = useTimeline();
+  const clips = useMediaStore((s) => s.clips);
+  const selectedClipId = useMediaStore((s) => s.selectedClipId);
+  const addMultipleMedia = useMediaStore((s) => s.addMultipleMedia);
+  const selectClip = useMediaStore((s) => s.selectClip);
+  const removeMedia = useMediaStore((s) => s.removeMedia);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
@@ -147,7 +150,6 @@ function App() {
       }
     }
 
-    // Add all successfully processed clips to state using context
     if (newClips.length > 0) {
       addMultipleMedia(newClips);
       showToast(`Successfully imported ${newClips.length} video${newClips.length > 1 ? "s" : ""}`, "success");
@@ -239,20 +241,12 @@ function App() {
           />
 
           {/* Video Preview - Center Panel */}
-          <VideoPlayer 
-            selectedMediaClip={selectedClip}
-            selectedTimelineClip={selectedTimelineClip}
-            tracks={tracks}
-            playhead={playhead}
-            onShowToast={showToast}
-            onCurrentTimeChange={setPlayhead}
-            timelinePlayhead={playhead}
-          />
+          <VideoPlayer onShowToast={showToast} />
         </div>
 
         {/* Timeline - Bottom Panel */}
         <section className="timeline">
-          <Timeline playhead={playhead} onPlayheadChange={setPlayhead} />
+          <Timeline />
         </section>
       </div>
 

@@ -1,14 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./Timeline.css";
-import { useTimeline } from "../../context/TimelineContext";
 import ExportModal from "../ExportModal/ExportModal";
+import { usePlaybackStore } from "../../store/playbackStore";
 
 /**
  * Clip Component with Trim Handles
  * Individual clip on the timeline with left/right trim handles
  */
 function TimelineClip({ clip, zoom, scale, maxDuration = 60, playhead, maxTimelineDuration, onClipDrop }) {
-  const { updateClipTrim, updateClipPosition, selectTimelineClip, selectedTimelineClipId, removeClipFromTimeline } = useTimeline();
+  const updateClipTrim = usePlaybackStore((s) => s.updateClipTrim);
+  const updateClipPosition = usePlaybackStore((s) => s.updateClipPosition);
+  const selectTimelineClip = usePlaybackStore((s) => s.selectTimelineClip);
+  const selectedTimelineClipId = usePlaybackStore((s) => s.selectedTimelineClipId);
+  const removeClipFromTimeline = usePlaybackStore((s) => s.removeClipFromTimeline);
   const [isTrimming, setIsTrimming] = useState(null); // 'left' or 'right'
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -134,16 +138,16 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60, playhead, maxTimeli
   };
 
   // Calculate if playhead is within this clip for split indicator
+  // playhead is absolute seconds — no conversion needed
   const trimStart = clip.trimStart || 0;
   const trimEnd = clip.trimEnd || clip.duration;
   const clipStartTime = clip.position;
   const clipEndTime = clip.position + (trimEnd - trimStart);
-  const playheadTime = playhead * maxTimelineDuration;
-  const isPlayheadInClip = playheadTime > clipStartTime && playheadTime < clipEndTime;
+  const isPlayheadInClip = playhead > clipStartTime && playhead < clipEndTime;
   
   // Calculate split indicator position relative to clip
   const splitIndicatorPosition = isPlayheadInClip && isHovering 
-    ? ((playheadTime - clipStartTime) / (clipEndTime - clipStartTime)) * 100 
+    ? ((playhead - clipStartTime) / (clipEndTime - clipStartTime)) * 100 
     : null;
 
   return (
@@ -192,13 +196,22 @@ function TimelineClip({ clip, zoom, scale, maxDuration = 60, playhead, maxTimeli
  * Timeline Component
  * Visual timeline with track layout and playhead
  */
-function Timeline({ playhead = 0, onPlayheadChange }) {
+function Timeline() {
+  const playhead = usePlaybackStore((s) => s.playhead);
+  const setPlayhead = usePlaybackStore((s) => s.setPlayhead);
+  const tracks = usePlaybackStore((s) => s.tracks);
+  const addClipToTimeline = usePlaybackStore((s) => s.addClipToTimeline);
+  const splitClipAtPlayhead = usePlaybackStore((s) => s.splitClipAtPlayhead);
+  const removeClipFromTimeline = usePlaybackStore((s) => s.removeClipFromTimeline);
+  const selectedTimelineClipId = usePlaybackStore((s) => s.selectedTimelineClipId);
+  const moveClipToTrack = usePlaybackStore((s) => s.moveClipToTrack);
+  const updateClipPosition = usePlaybackStore((s) => s.updateClipPosition);
+
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedOverTrack, setDraggedOverTrack] = useState(null);
   const [timelineWidth, setTimelineWidth] = useState(600);
   const timelineContentRef = useRef(null);
-  const { tracks, addClipToTimeline, splitClipAtPlayhead, removeClipFromTimeline, selectedTimelineClipId, moveClipToTrack, updateClipPosition } = useTimeline();
 
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false);
@@ -286,15 +299,15 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   };
 
   const updatePlayheadPosition = (clientX) => {
-    if (!timelineContentRef.current || !onPlayheadChange) return;
-    
+    if (!timelineContentRef.current) return;
+
     const rect = timelineContentRef.current.getBoundingClientRect();
     const relativeX = clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, relativeX / rect.width));
-    
-    // Calculate time in seconds based on actual timeline duration
+
+    // Emit absolute seconds directly — store handles clamping
     const time = percentage * maxTimelineDuration;
-    onPlayheadChange(time / maxTimelineDuration); // Normalized to 0-1
+    setPlayhead(time);
   };
 
   const handlePlayheadMouseDown = (e) => {
@@ -478,10 +491,10 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
   const handleSplit = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    
-    // Convert playhead (0-1) to actual timeline time in seconds
-    const splitTime = playhead * maxTimelineDuration;
-    
+
+    // playhead is absolute seconds — use directly
+    const splitTime = playhead;
+
     // Find clip at playhead position on each track
     let clipToSplit = null;
     let trackId = null;
@@ -635,7 +648,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
               {/* Playhead in ruler */}
               <div 
                 className="playhead-line playhead-ruler"
-                style={{ left: `${playhead * 100}%` }}
+                style={{ left: `${(playhead / maxTimelineDuration) * 100}%` }}
                 onMouseDown={handlePlayheadMouseDown}
               />
             </div>
@@ -664,7 +677,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
                 ))}
                 <div 
                   className="playhead-line" 
-                  style={{ left: `${playhead * 100}%` }}
+                  style={{ left: `${(playhead / maxTimelineDuration) * 100}%` }}
                   onMouseDown={handlePlayheadMouseDown}
                 />
               </div>
@@ -691,7 +704,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
                 ))}
                 <div 
                   className="playhead-line" 
-                  style={{ left: `${playhead * 100}%` }}
+                  style={{ left: `${(playhead / maxTimelineDuration) * 100}%` }}
                   onMouseDown={handlePlayheadMouseDown}
                 />
               </div>
@@ -718,7 +731,7 @@ function Timeline({ playhead = 0, onPlayheadChange }) {
                 ))}
                 <div 
                   className="playhead-line" 
-                  style={{ left: `${playhead * 100}%` }}
+                  style={{ left: `${(playhead / maxTimelineDuration) * 100}%` }}
                   onMouseDown={handlePlayheadMouseDown}
                 />
               </div>
