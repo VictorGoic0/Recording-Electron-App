@@ -6,6 +6,7 @@ const {
   shell,
   protocol,
   net,
+  session,
   desktopCapturer,
 } = require("electron");
 const path = require("path");
@@ -76,6 +77,34 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // Set Content Security Policy headers — dev allows Vite dev server, prod locks down to self
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const policy = isDev
+      ? [
+          "default-src 'self' http://localhost:3000 ws://localhost:3000;",
+          "script-src 'self' http://localhost:3000;",
+          "style-src 'self' 'unsafe-inline';",
+          "img-src 'self' data: blob: local-video:;",
+          "media-src 'self' blob: local-video:;",
+          "connect-src 'self' ws://localhost:3000 http://localhost:3000;",
+        ].join(" ")
+      : [
+          "default-src 'self';",
+          "script-src 'self';",
+          "style-src 'self' 'unsafe-inline';",
+          "img-src 'self' data: blob: local-video:;",
+          "media-src 'self' blob: local-video:;",
+          "connect-src 'self';",
+        ].join(" ");
+
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [policy],
+      },
+    });
+  });
+
   // Register custom protocol for loading local video files securely
   // Using modern protocol.handle API (replaces deprecated registerFileProtocol)
   // Returns a Response object (fetch API standard) instead of using callbacks
