@@ -51,18 +51,21 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
-      webSecurity: true, // Keep security enabled
+      webSecurity: true,
     },
   });
+
+  mainWindow.maximize();
+  mainWindow.show();
 
   // Load from Vite dev server in development, or from built files in production
   if (isDev) {
     mainWindow.loadURL("http://localhost:3000");
-    mainWindow.webContents.openDevTools();
   } else {
     // In production, the app structure is: app.asar/dist-renderer/index.html
     // __dirname in packaged app points to: app.asar/src/main
@@ -82,7 +85,7 @@ app.whenReady().then(async () => {
     const policy = isDev
       ? [
           "default-src 'self' http://localhost:3000 ws://localhost:3000;",
-          "script-src 'self' http://localhost:3000;",
+          "script-src 'self' 'unsafe-inline' http://localhost:3000;",
           "style-src 'self' 'unsafe-inline';",
           "img-src 'self' data: blob: local-video:;",
           "media-src 'self' blob: local-video:;",
