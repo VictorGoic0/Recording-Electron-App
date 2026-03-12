@@ -21,9 +21,7 @@
 
 ### Known Bugs
 
-- ❌ **First-import seek failure**: On first import only, arrow key seeks and slider scrubbing call `video.currentTime = time` correctly but the video does not move. Second import works. Full investigation in `CONTEXT.md`.
-  - Leading hypothesis: `local-video://` protocol missing byte-range request support (required by Chromium for seeking)
-  - Next to try: `seeked` event listener to detect silent reset, switch to `file://`, or register protocol with `stream: true`
+- ✅ **First-import seek failure** — FIXED. Root cause: `net.fetch` proxy to `file://` added async latency on cold cache; Chromium's media pipeline finalized pipeline init before the first range response arrived and marked the resource non-seekable. Fix: replaced `net.fetch` with `fs.createReadStream` + explicit `206 Partial Content` / `Content-Range` / `accept-ranges: bytes` headers in the `local-video://` protocol handler. Also added `getMimeType()` helper and removed unused `net` import.
 
 ### What's Not Started
 

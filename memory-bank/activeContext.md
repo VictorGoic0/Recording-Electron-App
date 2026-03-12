@@ -2,15 +2,9 @@
 
 ## Current Work Focus
 
-**Phase**: VideoPlayer seek bug investigation
-**Date**: March 11, 2026
-**Status**: Bug unresolved — architecture cleaned up significantly, root cause identified as likely Electron custom protocol issue
-
-## The Active Bug
-
-On first import only, arrow key seeks and slider scrubbing fail silently — `video.currentTime = time` is called with correct values but the video does not move. Play/pause works. Second import works. Timeline clip playback works.
-
-Full investigation history: see `CONTEXT.md` in project root.
+**Phase**: Playhead sync — VideoPlayer ↔ Timeline
+**Date**: March 12, 2026
+**Status**: Seek bug fixed. Planning playhead implementation.
 
 ## What Was Completed This Session
 
@@ -37,9 +31,14 @@ Full investigation history: see `CONTEXT.md` in project root.
 - `isSeeking`/`setIsSeeking` removed
 - `setDuration` no longer references `currentTime`
 
+### Seek Bug Fix (shipped)
+- Root cause: `net.fetch` proxy to `file://` added async latency; Chromium media pipeline marked resource non-seekable on cold cache before first range response arrived
+- Fix: `local-video://` protocol handler now uses `fs.createReadStream` + explicit `206 Partial Content` / `Content-Range` / `accept-ranges: bytes`
+- Added `getMimeType()` helper; removed unused `net` import from main.js
+
 ## Immediate Next Steps
 
-Investigate the seek bug. Leading hypothesis: `local-video://` custom protocol does not support HTTP byte-range requests, which Chromium requires for seeking in large video files. See `CONTEXT.md` for full list of next approaches.
+Implement playhead sync: VideoPlayer `readOnlyCurrentTime` → `usePlaybackStore.playhead`, bidirectional (Timeline drag → VideoPlayer seek).
 
 ## Active Architecture
 

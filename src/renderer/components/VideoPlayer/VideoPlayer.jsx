@@ -32,8 +32,11 @@ function VideoPlayer({ onShowToast }) {
 
   const duration = usePlaybackStore((s) => s.duration);
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const pendingSeek = usePlaybackStore((s) => s.pendingSeek);
   const setDuration = usePlaybackStore((s) => s.setDuration);
   const setIsPlaying = usePlaybackStore((s) => s.setIsPlaying);
+  const setPlayheadFromVideo = usePlaybackStore((s) => s.setPlayheadFromVideo);
+  const clearPendingSeek = usePlaybackStore((s) => s.clearPendingSeek);
 
   const [readOnlyCurrentTime, setReadOnlyCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -44,6 +47,7 @@ function VideoPlayer({ onShowToast }) {
   const videoRef = useRef(null);
   const overlayVideoRefs = useRef([]);
   const progressBarRef = useRef(null);
+  const rafIdRef = useRef(null);
 
   const selectedClip = selectedTimelineClip || selectedMediaClip;
   const isTimelineClip = !!selectedTimelineClip;
@@ -145,9 +149,20 @@ function VideoPlayer({ onShowToast }) {
         video.currentTime = trimEnd;
         setIsPlaying(false);
         setReadOnlyCurrentTime(trimEnd);
+        // Sync playhead on trim boundary hit — cancel any pending RAF first
+        if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+        setPlayheadFromVideo(trimEnd);
         return;
       }
       setReadOnlyCurrentTime(newTime);
+      // Throttle playhead store writes to one per animation frame to avoid
+      // flooding Zustand with 60+ updates/sec during playback.
+      if (rafIdRef.current) return;
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        setPlayheadFromVideo(video.currentTime);
+      });
     };
 
     const onEnded = () => {
@@ -198,6 +213,10 @@ function VideoPlayer({ onShowToast }) {
       video.removeEventListener("timeupdate", onTimeUpdate);
       video.removeEventListener("ended", onEnded);
       video.removeEventListener("error", onError);
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
     };
   }, [selectedClip?.filePath, selectedClip?.id]);
 
@@ -209,6 +228,21 @@ function VideoPlayer({ onShowToast }) {
     if (ct < trimStart) video.currentTime = trimStart;
     else if (ct > trimEnd) video.currentTime = trimStart;
   }, [isTimelineClip, trimStart, trimEnd]);
+
+  // ── External seek (Timeline playhead drag → video)
+  // Only fires when pendingSeek is non-null (set by setPlayhead, not setPlayheadFromVideo).
+  // Clears immediately after applying so the effect doesn't re-run.
+  useEffect(() => {
+    if (pendingSeek === null) return;
+    const video = videoRef.current;
+    if (!video || video.duration <= 0) {
+      clearPendingSeek();
+      return;
+    }
+    video.currentTime = pendingSeek;
+    setReadOnlyCurrentTime(pendingSeek);
+    clearPendingSeek();
+  }, [pendingSeek]);
 
   // ── Overlay sync
   useEffect(() => {

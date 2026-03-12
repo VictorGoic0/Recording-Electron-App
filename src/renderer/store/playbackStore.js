@@ -19,10 +19,27 @@ export const usePlaybackStore = create((set, get) => ({
   ],
 
   // ── Playhead / Duration ────────────────────────────────────────────────────
+
+  // pendingSeek: non-null when the Timeline (or any external consumer) wants to
+  // seek the video to a specific time. VideoPlayer watches this, applies it to
+  // videoRef.current.currentTime, then calls clearPendingSeek(). VideoPlayer
+  // never sets pendingSeek — only external callers do — so there is no loop.
+  pendingSeek: null,
+
+  // Called by Timeline drag / ruler click — sets playhead AND requests a video seek.
   setPlayhead: (seconds) => {
     const { duration } = get();
-    set({ playhead: Math.max(0, duration > 0 ? Math.min(seconds, duration) : seconds) });
+    const clamped = Math.max(0, duration > 0 ? Math.min(seconds, duration) : seconds);
+    set({ playhead: clamped, pendingSeek: clamped });
   },
+
+  // Called by VideoPlayer's timeupdate — updates the needle position without
+  // triggering a redundant video seek.
+  setPlayheadFromVideo: (seconds) => {
+    set({ playhead: seconds });
+  },
+
+  clearPendingSeek: () => set({ pendingSeek: null }),
 
   setDuration: (seconds) => {
     const { playhead } = get();
