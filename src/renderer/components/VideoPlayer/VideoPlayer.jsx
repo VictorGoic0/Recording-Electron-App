@@ -23,7 +23,7 @@ import { usePlaybackStore } from "../../store/playbackStore";
  */
 function VideoPlayer({ onShowToast }) {
   const selectedMediaClip = useMediaStore((s) =>
-    s.clips.find((c) => c.id === s.selectedClipId) ?? null
+    s.clips.find((c) => c.id === s.selectedMediaLibraryClipId) ?? null
   );
   const selectedTimelineClip = usePlaybackStore((s) =>
     s.tracks.flatMap((t) => t.clips).find((c) => c.id === s.selectedTimelineClipId) ?? null
@@ -115,17 +115,6 @@ function VideoPlayer({ onShowToast }) {
     // ── Event handlers — defined here so they close over the correct clip context
     const onLoadedMetadata = () => {
       const videoDuration = video.duration;
-      console.log("[VideoPlayer] loadedmetadata", {
-        clipId: selectedClip.id,
-        filename: selectedClip.filename,
-        videoDuration,
-        readyState: video.readyState,
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        isTimelineClip,
-        trimStart,
-        trimEnd,
-      });
       if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
         console.warn("[VideoPlayer] Invalid duration", { videoDuration });
         setDuration(0);
@@ -194,16 +183,6 @@ function VideoPlayer({ onShowToast }) {
       const normalizedPath = videoSrc.replace(/\\/g, "/");
       videoSrc = `local-video://load?path=${encodeURIComponent(normalizedPath)}`;
     }
-
-    console.log("[VideoPlayer] loading clip", {
-      clipId: selectedClip.id,
-      filename: selectedClip.filename,
-      videoSrc: videoSrc.slice(0, 80),
-      isTimelineClip,
-      trimStart,
-      trimEnd,
-      readyState: video.readyState,
-    });
 
     video.src = videoSrc;
     video.load();

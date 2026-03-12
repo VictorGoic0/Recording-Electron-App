@@ -1,9 +1,10 @@
 import { create } from "zustand";
+import { usePlaybackStore } from "./playbackStore";
 
 export const useMediaStore = create((set, get) => ({
   // ── State ──────────────────────────────────────────────────────────────────
   clips: [],
-  selectedClipId: null,
+  selectedMediaLibraryClipId: null,
 
   // ── Actions ────────────────────────────────────────────────────────────────
   addMedia: (clip) => {
@@ -36,7 +37,7 @@ export const useMediaStore = create((set, get) => ({
       if (clip) console.log(`[mediaStore] Removing clip: ${clip.filename}`);
       return {
         clips: state.clips.filter((c) => c.id !== clipId),
-        selectedClipId: state.selectedClipId === clipId ? null : state.selectedClipId,
+        selectedMediaLibraryClipId: state.selectedMediaLibraryClipId === clipId ? null : state.selectedMediaLibraryClipId,
       };
     });
   },
@@ -50,16 +51,12 @@ export const useMediaStore = create((set, get) => ({
 
   clearAllMedia: () => {
     console.log(`[mediaStore] Clearing all ${get().clips.length} clip(s)`);
-    set({ clips: [], selectedClipId: null });
+    set({ clips: [], selectedMediaLibraryClipId: null });
   },
 
-  selectClip: (clipId) => {
-    const clip = get().clips.find((c) => c.id === clipId);
-    if (clipId && clip) {
-      console.log(`[mediaStore] Selected clip: ${clip.filename}`);
-    } else if (!clipId) {
-      console.log(`[mediaStore] Deselected clip`);
-    }
-    set({ selectedClipId: clipId });
+  selectMediaLibraryClip: (clipId) => {
+    // Clear timeline selection when actively selecting a library clip (not when clearing)
+    if (clipId !== null) usePlaybackStore.getState().selectTimelineClip(null);
+    set({ selectedMediaLibraryClipId: clipId });
   },
 }));

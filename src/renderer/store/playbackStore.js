@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { v4 as uuidv4 } from "uuid";
+import { useMediaStore } from "./mediaStore";
 
 export const usePlaybackStore = create((set, get) => ({
   // ── State ──────────────────────────────────────────────────────────────────
@@ -56,7 +57,11 @@ export const usePlaybackStore = create((set, get) => ({
   setIsPlaying: (bool) => set({ isPlaying: bool }),
 
   // ── Timeline Clip Selection ────────────────────────────────────────────────
-  selectTimelineClip: (clipId) => set({ selectedTimelineClipId: clipId }),
+  selectTimelineClip: (clipId) => {
+    // Clear media library selection — only one context can be active at a time
+    if (clipId !== null) useMediaStore.getState().selectMediaLibraryClip(null);
+    set({ selectedTimelineClipId: clipId });
+  },
 
   // ── Track / Clip Operations ────────────────────────────────────────────────
   addClipToTimeline: (clip, trackId, position) => {

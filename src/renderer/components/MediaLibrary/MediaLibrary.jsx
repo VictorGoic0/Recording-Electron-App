@@ -14,8 +14,8 @@ import { useMediaStore } from "../../store/mediaStore";
  */
 function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
   const clips = useMediaStore((s) => s.clips);
-  const selectedClipId = useMediaStore((s) => s.selectedClipId);
-  const selectClip = useMediaStore((s) => s.selectClip);
+  const selectedClipId = useMediaStore((s) => s.selectedMediaLibraryClipId);
+  const selectClip = useMediaStore((s) => s.selectMediaLibraryClip);
   const removeMedia = useMediaStore((s) => s.removeMedia);
   const [isDragging, setIsDragging] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
