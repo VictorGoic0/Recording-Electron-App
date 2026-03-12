@@ -5,7 +5,6 @@ const {
   dialog,
   shell,
   protocol,
-  net,
   session,
   desktopCapturer,
 } = require("electron");
@@ -28,6 +27,29 @@ const {
 } = require("./services/exportService");
 
 let mainWindow;
+
+function getMimeType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeTypes = {
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".mov": "video/quicktime",
+    ".avi": "video/x-msvideo",
+    ".mkv": "video/x-matroska",
+    ".m4v": "video/mp4",
+    ".ogv": "video/ogg",
+    ".ts": "video/mp2t",
+    ".flv": "video/x-flv",
+    ".wmv": "video/x-ms-wmv",
+    ".3gp": "video/3gpp",
+    ".mp3": "audio/mpeg",
+    ".aac": "audio/aac",
+    ".wav": "audio/wav",
+    ".ogg": "audio/ogg",
+    ".m4a": "audio/mp4",
+  };
+  return mimeTypes[ext] || "application/octet-stream";
+}
 
 // Register the custom protocol as a standard scheme before app is ready
 // This is REQUIRED for protocol.handle() to work properly
@@ -108,51 +130,88 @@ app.whenReady().then(async () => {
     });
   });
 
-  // Register custom protocol for loading local video files securely
-  // Using modern protocol.handle API (replaces deprecated registerFileProtocol)
-  // Returns a Response object (fetch API standard) instead of using callbacks
+  // Register custom protocol for loading local video files securely.
+  // Handles byte-range requests explicitly so Chromium's media pipeline can seek
+  // on first load. Using net.fetch to proxy to file:// causes Chromium to mark
+  // the resource as non-seekable on cold cache because the async range response
+  // arrives too late during pipeline initialization. Direct fs streaming with
+  // explicit 206 Partial Content responses avoids this entirely.
   protocol.handle("local-video", (request) => {
     try {
-      // Parse the URL to extract the path from query parameter
-      // Format: local-video://load?path=C%3A%2FUsers%2Ffile.mp4
       const requestUrl = new URL(request.url);
-
-      // Get the path from the query parameter
       const filePath = requestUrl.searchParams.get("path");
 
       if (!filePath) {
-        console.error(
-          "[Protocol] No path parameter provided in URL:",
-          request.url
-        );
         return new Response("Missing path parameter", {
           status: 400,
           headers: { "content-type": "text/plain" },
         });
       }
 
-      // Verify file exists before serving
       if (!fs.existsSync(filePath)) {
-        console.error("[Protocol] File not found:", filePath);
         return new Response("File not found", {
           status: 404,
           headers: { "content-type": "text/plain" },
         });
       }
 
-      // Convert to file:// URL for net.fetch
-      const normalizedPath = filePath.replace(/\\/g, "/");
-      const fileUrl = normalizedPath.match(/^[a-zA-Z]:/)
-        ? `file:///${normalizedPath}` // Windows: file:///C:/path
-        : `file://${normalizedPath}`; // Unix: file:///path
+      const stat = fs.statSync(filePath);
+      const fileSize = stat.size;
+      const mimeType = getMimeType(filePath);
+      const rangeHeader = request.headers.get("range");
 
-      // Create a new request with the same headers to pass through range requests
-      const fetchRequest = new Request(fileUrl, {
-        headers: request.headers,
+      if (rangeHeader) {
+        // Parse "bytes=start-end"
+        const [, rangeVal] = rangeHeader.split("=");
+        const [startStr, endStr] = rangeVal.split("-");
+        const start = parseInt(startStr, 10);
+        const end = endStr ? parseInt(endStr, 10) : fileSize - 1;
+        const chunkSize = end - start + 1;
+
+        const stream = fs.createReadStream(filePath, { start, end });
+        const nodeReadable = new ReadableStream({
+          start(controller) {
+            stream.on("data", (chunk) => controller.enqueue(chunk));
+            stream.on("end", () => controller.close());
+            stream.on("error", (err) => controller.error(err));
+          },
+          cancel() {
+            stream.destroy();
+          },
+        });
+
+        return new Response(nodeReadable, {
+          status: 206,
+          headers: {
+            "content-type": mimeType,
+            "content-length": String(chunkSize),
+            "content-range": `bytes ${start}-${end}/${fileSize}`,
+            "accept-ranges": "bytes",
+          },
+        });
+      }
+
+      // Non-range request — stream the whole file
+      const stream = fs.createReadStream(filePath);
+      const nodeReadable = new ReadableStream({
+        start(controller) {
+          stream.on("data", (chunk) => controller.enqueue(chunk));
+          stream.on("end", () => controller.close());
+          stream.on("error", (err) => controller.error(err));
+        },
+        cancel() {
+          stream.destroy();
+        },
       });
 
-      // Fetch and return the file
-      return net.fetch(fetchRequest);
+      return new Response(nodeReadable, {
+        status: 200,
+        headers: {
+          "content-type": mimeType,
+          "content-length": String(fileSize),
+          "accept-ranges": "bytes",
+        },
+      });
     } catch (error) {
       console.error("[Protocol] Error loading file:", error);
       return new Response(`Error loading file: ${error.message}`, {

@@ -1,20 +1,25 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import "./VideoPlayer.css";
 import { useMediaStore } from "../../store/mediaStore";
 import { usePlaybackStore } from "../../store/playbackStore";
 
 /**
  * VideoPlayer Component
- * HTML5 video player with custom controls for previewing clips.
  *
- * IMPORTANT: Uses custom 'local-video://' protocol registered in main.js
- * to securely load local video files without triggering Electron's
- * file:// security restrictions.
+ * The <video> element is always mounted so videoRef.current is never null
+ * after the initial render. Visibility is controlled via CSS, not conditional
+ * rendering, eliminating the mount-race between clip selection and ref availability.
  *
- * Phase 2: All playback state (currentTime, duration, isPlaying, isSeeking)
- * lives in usePlaybackStore. No props except onShowToast.
- * setCurrentTime is atomic — writes both currentTime and playhead together,
- * eliminating the callback chain and the race conditions it caused.
+ * All video event listeners (loadedmetadata, timeupdate, ended, error) are attached
+ * imperatively inside the clip-load effect and removed on cleanup. This means
+ * no listeners fire before a clip is intentionally loaded — eliminating spurious
+ * error events on the empty <video> at mount time.
+ *
+ * All imperative operations read videoRef.current directly, never closed-over
+ * store values, to avoid stale closure bugs.
+ *
+ * IMPORTANT: Uses 'local-video://' protocol registered in main.js to securely
+ * load local video files without triggering Electron's file:// restrictions.
  */
 function VideoPlayer({ onShowToast }) {
   const selectedMediaClip = useMediaStore((s) =>
@@ -25,28 +30,20 @@ function VideoPlayer({ onShowToast }) {
   );
   const tracks = usePlaybackStore((s) => s.tracks);
 
-  // Store-backed playback state
-  const playhead = usePlaybackStore((s) => s.playhead);
   const duration = usePlaybackStore((s) => s.duration);
-  const currentTime = usePlaybackStore((s) => s.currentTime);
   const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const isSeeking = usePlaybackStore((s) => s.isSeeking);
-  const setCurrentTime = usePlaybackStore((s) => s.setCurrentTime);
   const setDuration = usePlaybackStore((s) => s.setDuration);
   const setIsPlaying = usePlaybackStore((s) => s.setIsPlaying);
-  const setIsSeeking = usePlaybackStore((s) => s.setIsSeeking);
 
-  // UI-local state — no other component needs these
+  const [readOnlyCurrentTime, setReadOnlyCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
   const [error, setError] = useState(null);
 
   const videoRef = useRef(null);
   const overlayVideoRefs = useRef([]);
   const progressBarRef = useRef(null);
-  // Guard flag: prevents VideoPlayer from re-seeking the video element in response
-  // to a store update that VideoPlayer itself triggered (feedback loop prevention).
-  const seekingFromVideoRef = useRef(false);
 
   const selectedClip = selectedTimelineClip || selectedMediaClip;
   const isTimelineClip = !!selectedTimelineClip;
@@ -74,30 +71,148 @@ function VideoPlayer({ onShowToast }) {
 
   const overlayClips = getOverlayClips();
 
-  // ── External seek: when the store's playhead changes due to timeline drag,
-  // seek the video element to match. The seekingFromVideoRef guard prevents this
-  // from firing when the video itself is the source of the playhead update.
+  // ── Mount: restore saved volume — ref is always valid here
   useEffect(() => {
-    if (!videoRef.current) return;
-    if (seekingFromVideoRef.current) return;
+    const savedVolume = localStorage.getItem("videoPlayerVolume");
+    if (savedVolume !== null) {
+      const vol = parseFloat(savedVolume);
+      setVolume(vol);
+      videoRef.current.volume = vol;
+    }
+  }, []);
 
-    if (!isFinite(playhead) || isNaN(playhead)) return;
+  // ── Clip load: set src, attach listeners, call load() — all in one place.
+  // Listeners are removed on cleanup so nothing fires on an unloaded element.
+  useEffect(() => {
+    const video = videoRef.current;
 
-    if (Math.abs(videoRef.current.currentTime - playhead) > 0.1) {
-      videoRef.current.currentTime = playhead;
+    // Reset state and detach any previous src when no clip is selected
+    if (!selectedClip) {
+      video.pause();
+      video.src = "";
+      setIsPlaying(false);
+      setReadOnlyCurrentTime(0);
+      setDuration(0);
+      setError(null);
+      return;
     }
 
-    overlayVideoRefs.current.forEach((overlayVideo) => {
-      if (overlayVideo && Math.abs(overlayVideo.currentTime - playhead) > 0.1) {
-        overlayVideo.currentTime = playhead;
+    if (!selectedClip.filePath) {
+      setError("Video file path is missing");
+      if (onShowToast) onShowToast("Video file path is missing. Please select another clip.", "error");
+      return;
+    }
+
+    // Reset playback state before loading new src
+    video.pause();
+    setIsPlaying(false);
+    setReadOnlyCurrentTime(0);
+    setError(null);
+    // ── Event handlers — defined here so they close over the correct clip context
+    const onLoadedMetadata = () => {
+      const videoDuration = video.duration;
+      console.log("[VideoPlayer] loadedmetadata", {
+        clipId: selectedClip.id,
+        filename: selectedClip.filename,
+        videoDuration,
+        readyState: video.readyState,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        isTimelineClip,
+        trimStart,
+        trimEnd,
+      });
+      if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
+        console.warn("[VideoPlayer] Invalid duration", { videoDuration });
+        setDuration(0);
+        return;
       }
+      setDuration(videoDuration);
+      if (video.videoWidth === 0 && video.videoHeight === 0) {
+        const msg = "Audio-only files are not supported. Please use a video file.";
+        setError(msg);
+        if (onShowToast) onShowToast(msg, "warning");
+      }
+      if (isTimelineClip && trimStart > 0) {
+        video.currentTime = trimStart;
+      }
+    };
+
+    const onTimeUpdate = () => {
+      const newTime = video.currentTime;
+      if (isTimelineClip && newTime >= trimEnd) {
+        video.pause();
+        video.currentTime = trimEnd;
+        setIsPlaying(false);
+        setReadOnlyCurrentTime(trimEnd);
+        return;
+      }
+      setReadOnlyCurrentTime(newTime);
+    };
+
+    const onEnded = () => {
+      setIsPlaying(false);
+    };
+
+    const onError = () => {
+      const errorMessages = {
+        1: "Video loading was aborted",
+        2: "Network error while loading video",
+        3: "Video decoding failed — file may be corrupted or use an unsupported codec",
+        4: "Video format not supported or file not found",
+      };
+      const msg = video.error
+        ? errorMessages[video.error.code] || "Unable to load video"
+        : "Failed to load video. File may be corrupted or in an unsupported format.";
+      setError(msg);
+      if (onShowToast) onShowToast(msg, "error");
+      setIsPlaying(false);
+    };
+
+    video.addEventListener("loadedmetadata", onLoadedMetadata);
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("ended", onEnded);
+    video.addEventListener("error", onError);
+
+    let videoSrc = selectedClip.filePath;
+    if (!videoSrc.startsWith("local-video:") && !videoSrc.startsWith("blob:")) {
+      const normalizedPath = videoSrc.replace(/\\/g, "/");
+      videoSrc = `local-video://load?path=${encodeURIComponent(normalizedPath)}`;
+    }
+
+    console.log("[VideoPlayer] loading clip", {
+      clipId: selectedClip.id,
+      filename: selectedClip.filename,
+      videoSrc: videoSrc.slice(0, 80),
+      isTimelineClip,
+      trimStart,
+      trimEnd,
+      readyState: video.readyState,
     });
-  }, [playhead, selectedClip]);
 
-  // ── Overlay sync: keep overlay videos in sync with main video play state
+    video.src = videoSrc;
+    video.load();
+
+    return () => {
+      video.removeEventListener("loadedmetadata", onLoadedMetadata);
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("ended", onEnded);
+      video.removeEventListener("error", onError);
+    };
+  }, [selectedClip?.filePath, selectedClip?.id]);
+
+  // ── Trim boundary enforcement
   useEffect(() => {
-    if (!videoRef.current || overlayClips.length === 0) return;
+    if (!isTimelineClip) return;
+    const video = videoRef.current;
+    const ct = video.currentTime;
+    if (ct < trimStart) video.currentTime = trimStart;
+    else if (ct > trimEnd) video.currentTime = trimStart;
+  }, [isTimelineClip, trimStart, trimEnd]);
 
+  // ── Overlay sync
+  useEffect(() => {
+    if (overlayClips.length === 0) return;
     const mainVideo = videoRef.current;
 
     const syncOverlays = () => {
@@ -119,79 +234,79 @@ function VideoPlayer({ onShowToast }) {
     return () => clearInterval(syncInterval);
   }, [isPlaying, overlayClips.length]);
 
-  // ── Load new clip source when selected clip changes
-  useEffect(() => {
-    if (!selectedClip) {
-      setError(null);
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
-      return;
-    }
+  // ── Controls
 
-    if (videoRef.current) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setError(null);
-
-      if (!selectedClip.filePath) {
-        console.error("Selected clip has no file path:", selectedClip);
-        setError("Video file path is missing");
-        if (onShowToast) onShowToast("Video file path is missing. Please select another clip.", "error");
-        return;
-      }
-
-      let videoSrc = selectedClip.filePath;
-      if (!videoSrc.startsWith("local-video:") && !videoSrc.startsWith("blob:")) {
-        const normalizedPath = videoSrc.replace(/\\/g, "/");
-        videoSrc = `local-video://load?path=${encodeURIComponent(normalizedPath)}`;
-      }
-
-      videoRef.current.src = videoSrc;
-      videoRef.current.load();
-    }
-  }, [selectedClip?.filePath, selectedClip?.id]);
-
-  // ── Trim boundary enforcement: seek into bounds if trim changes move them
-  useEffect(() => {
-    if (!videoRef.current || !isTimelineClip) return;
-    const ct = videoRef.current.currentTime;
-    if (ct < trimStart) videoRef.current.currentTime = trimStart;
-    else if (ct > trimEnd) videoRef.current.currentTime = trimStart;
-  }, [isTimelineClip, trimStart, trimEnd]);
-
-  // ── Restore saved volume on mount
-  useEffect(() => {
-    const savedVolume = localStorage.getItem("videoPlayerVolume");
-    if (savedVolume !== null) {
-      const vol = parseFloat(savedVolume);
-      setVolume(vol);
-      if (videoRef.current) videoRef.current.volume = vol;
-    }
-  }, []);
-
-  const togglePlayPause = useCallback(() => {
-    if (!videoRef.current || !selectedClip) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      videoRef.current.play().catch((err) => {
-        console.error("Play error:", err);
+  const togglePlayPause = () => {
+    const video = videoRef.current;
+    if (!video || !selectedClip) return;
+    if (video.paused) {
+      video.play().catch((err) => {
+        console.error("[VideoPlayer] Play error:", err);
         const msg = "Failed to play video";
         setError(msg);
         if (onShowToast) onShowToast(msg, "error");
       });
       setIsPlaying(true);
+    } else {
+      video.pause();
+      setIsPlaying(false);
     }
-  }, [selectedClip, isPlaying, setIsPlaying]);
+  };
+
+  const seekToPosition = (clientX) => {
+    const video = videoRef.current;
+    const bar = progressBarRef.current;
+    if (!video || !bar || video.duration <= 0) return;
+    const rect = bar.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const time = isTimelineClip
+      ? trimStart + pos * (trimEnd - trimStart)
+      : pos * video.duration;
+    video.currentTime = time;
+    setReadOnlyCurrentTime(time);
+  };
+
+  const handleProgressBarMouseDown = (e) => {
+    e.preventDefault();
+    setIsSeeking(true);
+    seekToPosition(e.clientX);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isSeeking) return;
+    e.preventDefault();
+    seekToPosition(e.clientX);
+  };
+
+  const handleMouseUp = (e) => {
+    if (!isSeeking) return;
+    e.preventDefault();
+    setIsSeeking(false);
+  };
+
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    videoRef.current.volume = newVolume;
+    if (isMuted) {
+      videoRef.current.muted = false;
+      setIsMuted(false);
+    }
+    localStorage.setItem("videoPlayerVolume", newVolume.toString());
+  };
+
+  const toggleMute = () => {
+    const newMuted = !isMuted;
+    videoRef.current.muted = newMuted;
+    setIsMuted(newMuted);
+  };
 
   const handleKeyDown = (e) => {
-    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (!video) return;
 
-    const videoControlKeys = [" ", "k", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
-    if (videoControlKeys.includes(e.key)) {
+    const handled = [" ", "k", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+    if (handled.includes(e.key)) {
       e.preventDefault();
       e.stopPropagation();
     }
@@ -201,166 +316,38 @@ function VideoPlayer({ onShowToast }) {
       case "k":
         togglePlayPause();
         break;
-      case "ArrowLeft":
-        if (videoRef.current.duration > 0) {
-          // Read directly from video element — never stale, no closed-over local state
-          const newTime = Math.max(videoRef.current.currentTime - 10, 0);
-          videoRef.current.currentTime = newTime;
-          setCurrentTime(newTime);
-        }
+      case "ArrowLeft": {
+        if (video.duration <= 0) break;
+        const newTime = Math.max(video.currentTime - 10, isTimelineClip ? trimStart : 0);
+        video.currentTime = newTime;
+        setReadOnlyCurrentTime(newTime);
         break;
-      case "ArrowRight":
-        if (videoRef.current.duration > 0) {
-          const newTime = Math.min(videoRef.current.currentTime + 10, videoRef.current.duration);
-          videoRef.current.currentTime = newTime;
-          setCurrentTime(newTime);
-        }
+      }
+      case "ArrowRight": {
+        if (video.duration <= 0) break;
+        const newTime = Math.min(video.currentTime + 10, isTimelineClip ? trimEnd : video.duration);
+        video.currentTime = newTime;
+        setReadOnlyCurrentTime(newTime);
         break;
-      case "ArrowUp":
-        setVolume((prev) => {
-          const newVolume = Math.min(prev + 0.1, 1);
-          if (videoRef.current) {
-            videoRef.current.volume = newVolume;
-            videoRef.current.muted = false;
-          }
-          setIsMuted(false);
-          localStorage.setItem("videoPlayerVolume", newVolume.toString());
-          return newVolume;
-        });
+      }
+      case "ArrowUp": {
+        const newVolume = Math.min(video.volume + 0.1, 1);
+        video.volume = newVolume;
+        video.muted = false;
+        setVolume(newVolume);
+        setIsMuted(false);
+        localStorage.setItem("videoPlayerVolume", newVolume.toString());
         break;
-      case "ArrowDown":
-        setVolume((prev) => {
-          const newVolume = Math.max(prev - 0.1, 0);
-          if (videoRef.current) videoRef.current.volume = newVolume;
-          localStorage.setItem("videoPlayerVolume", newVolume.toString());
-          return newVolume;
-        });
+      }
+      case "ArrowDown": {
+        const newVolume = Math.max(video.volume - 0.1, 0);
+        video.volume = newVolume;
+        setVolume(newVolume);
+        localStorage.setItem("videoPlayerVolume", newVolume.toString());
         break;
+      }
       default:
         break;
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (!videoRef.current) return;
-    const videoDuration = videoRef.current.duration;
-
-    if (!isFinite(videoDuration) || isNaN(videoDuration) || videoDuration <= 0) {
-      console.warn("VideoPlayer: Invalid duration from video element", { duration: videoDuration, selectedClip });
-      setDuration(0);
-    } else {
-      setDuration(videoDuration);
-    }
-
-    if (videoRef.current.videoWidth === 0 && videoRef.current.videoHeight === 0) {
-      const msg = "Audio-only files are not supported. Please use a video file.";
-      setError(msg);
-      if (onShowToast) onShowToast(msg, "warning");
-    }
-
-    if (isTimelineClip && trimStart > 0) {
-      videoRef.current.currentTime = trimStart;
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
-    const newTime = videoRef.current.currentTime;
-
-    if (isTimelineClip && newTime >= trimEnd) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = trimEnd;
-      setIsPlaying(false);
-      // Atomic write — updates both currentTime and playhead
-      setCurrentTime(trimEnd);
-      return;
-    }
-
-    // Flag that this store update originates from the video element,
-    // so the external-seek effect won't loop back and re-seek.
-    seekingFromVideoRef.current = true;
-    setCurrentTime(newTime);
-    // Reset flag after the current microtask queue flushes
-    Promise.resolve().then(() => { seekingFromVideoRef.current = false; });
-  };
-
-  const handleEnded = () => {
-    setIsPlaying(false);
-  };
-
-  const handleError = (e) => {
-    console.error("[VideoPlayer] Video player error:", e);
-    if (videoRef.current?.error) {
-      const { code, message } = videoRef.current.error;
-      const errorMessages = {
-        1: "Video loading was aborted",
-        2: "Network error while loading video",
-        3: "Video decoding failed - file may be corrupted or use an unsupported format",
-        4: "Video format not supported or file not found",
-      };
-      const msg = errorMessages[code] || "Unable to load video";
-      console.error("[VideoPlayer] Media Error Details:", { code, message, src: videoRef.current.src });
-      setError(msg);
-      if (onShowToast) onShowToast(msg, "error");
-    } else {
-      const msg = "Failed to load video. File may be corrupted or in an unsupported format.";
-      setError(msg);
-      if (onShowToast) onShowToast(msg, "error");
-    }
-    setIsPlaying(false);
-  };
-
-  const handleVolumeChange = (e) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    if (videoRef.current) {
-      videoRef.current.volume = newVolume;
-      if (isMuted) {
-        videoRef.current.muted = false;
-        setIsMuted(false);
-      }
-    }
-    localStorage.setItem("videoPlayerVolume", newVolume.toString());
-  };
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      const newMuted = !isMuted;
-      videoRef.current.muted = newMuted;
-      setIsMuted(newMuted);
-    }
-  };
-
-  const seekToPosition = (clientX) => {
-    if (!videoRef.current || !progressBarRef.current || !duration) return;
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const time = isTimelineClip
-      ? trimStart + pos * (trimEnd - trimStart)
-      : pos * duration;
-    videoRef.current.currentTime = time;
-    setCurrentTime(time);
-  };
-
-  const handleProgressBarMouseDown = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsSeeking(true);
-    seekToPosition(e.clientX);
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isSeeking) return;
-    e.preventDefault();
-    e.stopPropagation();
-    seekToPosition(e.clientX);
-  };
-
-  const handleMouseUp = (e) => {
-    if (isSeeking) {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsSeeking(false);
     }
   };
 
@@ -372,8 +359,14 @@ function VideoPlayer({ onShowToast }) {
   };
 
   const displayDuration = isTimelineClip ? trimEnd - trimStart : duration;
-  const displayCurrentTime = isTimelineClip ? Math.max(0, currentTime - trimStart) : currentTime;
+  const displayCurrentTime = isTimelineClip
+    ? Math.max(0, readOnlyCurrentTime - trimStart)
+    : readOnlyCurrentTime;
   const progress = displayDuration > 0 ? (displayCurrentTime / displayDuration) * 100 : 0;
+
+  const showPlaceholder = !selectedClip && !error;
+  const showError = !!error;
+  const showPlayer = !!selectedClip && !error;
 
   return (
     <section
@@ -390,123 +383,123 @@ function VideoPlayer({ onShowToast }) {
       </div>
 
       <div className="preview-content">
-        {!selectedClip ? (
+        {showPlaceholder && (
           <div className="placeholder-content">
             <div className="placeholder-icon">🎬</div>
             <p>No video selected</p>
             <p className="placeholder-hint">Select a clip from the media library</p>
           </div>
-        ) : error ? (
+        )}
+
+        {showError && (
           <div className="placeholder-content">
             <div className="placeholder-icon error">⚠️</div>
             <p>{error}</p>
             <p className="placeholder-hint">Try selecting a different clip</p>
           </div>
-        ) : (
-          <>
-            <div className="video-container">
+        )}
+
+        {/* video element is always mounted — visibility toggled via CSS, never unmounted */}
+        <div className="video-container" style={{ display: showPlayer ? "flex" : "none" }}>
+          <video
+            ref={videoRef}
+            className="video-element"
+            preload="auto"
+            controls={false}
+            disablePictureInPicture
+            disableRemotePlayback
+          />
+
+          {overlayClips.map((overlayClip, index) => {
+            const videoSrc =
+              overlayClip.filePath?.startsWith("local-video:") ||
+              overlayClip.filePath?.startsWith("blob:")
+                ? overlayClip.filePath
+                : `local-video://load?path=${encodeURIComponent(
+                    overlayClip.filePath?.replace(/\\/g, "/") || ""
+                  )}`;
+
+            const position =
+              overlayClip.trackId === "overlay"
+                ? { bottom: "80px", right: "20px" }
+                : { bottom: "80px", left: "20px" };
+
+            return (
               <video
-                ref={videoRef}
-                onLoadedMetadata={handleLoadedMetadata}
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={handleEnded}
-                onError={handleError}
-                className="video-element"
+                key={`${overlayClip.id}-${index}`}
+                ref={(el) => (overlayVideoRefs.current[index] = el)}
+                src={videoSrc}
+                className="video-overlay"
+                style={{
+                  position: "absolute",
+                  ...position,
+                  width: "25%",
+                  maxWidth: "320px",
+                  height: "auto",
+                  border: "2px solid rgba(255, 255, 255, 0.3)",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+                  zIndex: 10 + index,
+                }}
+                muted
                 controls={false}
                 disablePictureInPicture
                 disableRemotePlayback
               />
+            );
+          })}
+        </div>
 
-              {overlayClips.map((overlayClip, index) => {
-                const videoSrc =
-                  overlayClip.filePath?.startsWith("local-video:") ||
-                  overlayClip.filePath?.startsWith("blob:")
-                    ? overlayClip.filePath
-                    : `local-video://load?path=${encodeURIComponent(
-                        overlayClip.filePath?.replace(/\\/g, "/") || ""
-                      )}`;
+        {showPlayer && (
+          <div className="video-controls">
+            <button
+              className="control-btn play-pause"
+              onClick={togglePlayPause}
+              title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+            >
+              {isPlaying ? "⏸" : "▶"}
+            </button>
 
-                const position =
-                  overlayClip.trackId === "overlay"
-                    ? { bottom: "80px", right: "20px" }
-                    : { bottom: "80px", left: "20px" };
-
-                return (
-                  <video
-                    key={`${overlayClip.id}-${index}`}
-                    ref={(el) => (overlayVideoRefs.current[index] = el)}
-                    src={videoSrc}
-                    className="video-overlay"
-                    style={{
-                      position: "absolute",
-                      ...position,
-                      width: "25%",
-                      maxWidth: "320px",
-                      height: "auto",
-                      border: "2px solid rgba(255, 255, 255, 0.3)",
-                      borderRadius: "8px",
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
-                      zIndex: 10 + index,
-                    }}
-                    muted
-                    controls={false}
-                    disablePictureInPicture
-                    disableRemotePlayback
-                  />
-                );
-              })}
+            <div className="time-display">
+              {formatTime(displayCurrentTime)} / {formatTime(displayDuration)}
             </div>
 
-            <div className="video-controls">
-              <button
-                className="control-btn play-pause"
-                onClick={togglePlayPause}
-                title={isPlaying ? "Pause (Space)" : "Play (Space)"}
-              >
-                {isPlaying ? "⏸" : "▶"}
-              </button>
-
-              <div className="time-display">
-                {formatTime(displayCurrentTime)} / {formatTime(displayDuration)}
-              </div>
-
-              <div
-                ref={progressBarRef}
-                className={`progress-bar-container ${isSeeking ? "is-seeking" : ""}`}
-                onMouseDown={handleProgressBarMouseDown}
-                style={{ cursor: isSeeking ? "grabbing" : "pointer" }}
-              >
-                <div className="progress-bar">
-                  <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
-                  <div className="progress-bar-handle" style={{ left: `${progress}%` }} />
-                </div>
-              </div>
-
-              <button
-                className="control-btn volume-btn"
-                onClick={toggleMute}
-                title={isMuted ? "Unmute" : "Mute"}
-              >
-                {isMuted || volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}
-              </button>
-
-              <div className="volume-control-group">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={volume}
-                  onChange={handleVolumeChange}
-                  className="volume-slider"
-                  title={`Volume: ${Math.round(volume * 100)}%`}
-                />
-                <span className="volume-percentage">
-                  {isMuted ? "Muted" : `${Math.round(volume * 100)}%`}
-                </span>
+            <div
+              ref={progressBarRef}
+              className={`progress-bar-container${isSeeking ? " is-seeking" : ""}`}
+              onMouseDown={handleProgressBarMouseDown}
+              style={{ cursor: isSeeking ? "grabbing" : "pointer" }}
+            >
+              <div className="progress-bar">
+                <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+                <div className="progress-bar-handle" style={{ left: `${progress}%` }} />
               </div>
             </div>
-          </>
+
+            <button
+              className="control-btn volume-btn"
+              onClick={toggleMute}
+              title={isMuted ? "Unmute" : "Mute"}
+            >
+              {isMuted || volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}
+            </button>
+
+            <div className="volume-control-group">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="volume-slider"
+                title={`Volume: ${Math.round(volume * 100)}%`}
+              />
+              <span className="volume-percentage">
+                {isMuted ? "Muted" : `${Math.round(volume * 100)}%`}
+              </span>
+            </div>
+          </div>
         )}
       </div>
     </section>

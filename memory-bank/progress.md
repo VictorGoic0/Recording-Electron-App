@@ -1,36 +1,29 @@
 # Progress: ClipForge
 
-## Current Status: Zustand Refactor Complete — Ready for PR #10
+## Current Status: VideoPlayer Seek Bug Under Investigation
 
 ---
 
 ### What Works (Completed)
 
-- ✅ PR #1–9: All original features complete (video import, preview, timeline, trim, export, recording, multi-track)
-- ✅ Security: CSP headers via `webRequest.onHeadersReceived` (dev/prod split policies)
+- ✅ All original features: video import, preview, timeline, trim, export, recording, multi-track
+- ✅ Security: CSP headers, `local-video://` custom protocol
 - ✅ UX: App starts maximized, DevTools no longer auto-open
-- ✅ Fix: `src/renderer/index.html` correctly references `index.jsx`
-- ✅ Zustand Phase 1 (PR #1): Both contexts replaced with stores, playhead in absolute seconds
-- ✅ Zustand Phase 2 (PR #2): VideoPlayer playback state in store, all three bugs fixed
+- ✅ Zustand refactor complete: `useMediaStore` + `usePlaybackStore`, no React Context
+- ✅ `App.jsx` cleaned up: 103 lines, import logic in `useImport` hook
+- ✅ `MediaLibrary` subscribes to store directly, no prop drilling for clip actions
+- ✅ `VideoPlayer` architecture corrected:
+  - `<video>` always mounted
+  - Imperative event listeners, no React synthetic event props
+  - No stale closures
+  - `preload="auto"`
+  - `currentTime`, `isSeeking` removed from Zustand store
 
-### Bug Fix Verification
+### Known Bugs
 
-| Bug | Fix | Verified |
-|---|---|---|
-| Keyboard seek unresponsive on first load | Read `videoRef.current` directly in handlers | ✅ |
-| Red line out of sync with video | Single `playhead` in absolute seconds, single `duration` | ✅ |
-| Split at wrong position | `setCurrentTime` atomic — no callback-lag race | ✅ |
-
-### What's In Progress
-
-- **PR #10**: Polish & Packaging (next priority)
-  - Final UI polish
-  - Build distributable (.exe/.dmg)
-  - Demo video creation
-
-### Known Remaining Bugs
-
-- Specific playback edge cases exist but are outside the scope of the Zustand refactor — to be tracked as separate issues
+- ❌ **First-import seek failure**: On first import only, arrow key seeks and slider scrubbing call `video.currentTime = time` correctly but the video does not move. Second import works. Full investigation in `CONTEXT.md`.
+  - Leading hypothesis: `local-video://` protocol missing byte-range request support (required by Chromium for seeking)
+  - Next to try: `seeked` event listener to detect silent reset, switch to `file://`, or register protocol with `stream: true`
 
 ### What's Not Started
 
@@ -41,25 +34,11 @@
 
 ---
 
-## State Architecture (Final)
+## State Architecture (Current)
 
 | Store | State | Key Actions |
 |---|---|---|
 | `useMediaStore` | `clips`, `selectedClipId` | `addMedia`, `addMultipleMedia`, `removeMedia`, `updateMedia`, `selectClip` |
-| `usePlaybackStore` | `playhead`, `duration`, `currentTime`, `isPlaying`, `isSeeking`, `tracks`, `zoom`, `selectedTimelineClipId` | `setCurrentTime` (atomic), `setPlayhead`, `setDuration`, `setIsPlaying`, `setIsSeeking`, all track/clip ops |
+| `usePlaybackStore` | `playhead`, `duration`, `isPlaying`, `tracks`, `zoom`, `selectedTimelineClipId` | `setPlayhead`, `setDuration`, `setIsPlaying`, all track/clip ops |
 
-**Rule:** `setCurrentTime(s)` always writes `{ currentTime: s, playhead: s }` — they are never out of sync.
-
-## Key Features Summary
-
-### Recording ✅
-- Screen + webcam recording, VP9/VP8, FFmpeg WebM fix, auto-import
-
-### Timeline ✅
-- 3-track, drag & drop, trim handles, zoom, split (Ctrl+K), playhead in absolute seconds
-
-### Preview ✅
-- Single clip + multi-track PiP preview, synchronized overlays, full keyboard/mouse controls
-
-### Export ✅
-- Single clip, multi-clip concat, multi-track overlay export, FFmpeg H.264/AAC, progress tracking
+**VideoPlayer local state**: `readOnlyCurrentTime`, `isSeeking`, `volume`, `isMuted`, `error`

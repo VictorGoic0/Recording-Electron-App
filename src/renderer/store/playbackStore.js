@@ -10,12 +10,8 @@ export const usePlaybackStore = create((set, get) => ({
   zoom: 1,
   selectedTimelineClipId: null,
 
-  // ── Player State (added Phase 2) ───────────────────────────────────────────
-  // currentTime mirrors playhead but is the authoritative video element position.
-  // isPlaying and isSeeking were previously local state in VideoPlayer.
-  currentTime: 0,
+  // ── Player State ───────────────────────────────────────────────────────────
   isPlaying: false,
-  isSeeking: false,
   tracks: [
     { id: "main", name: "Main", clips: [] },
     { id: "overlay", name: "Overlay", clips: [] },
@@ -29,11 +25,10 @@ export const usePlaybackStore = create((set, get) => ({
   },
 
   setDuration: (seconds) => {
-    const { playhead, currentTime } = get();
+    const { playhead } = get();
     set({
       duration: seconds,
       playhead: seconds > 0 ? Math.min(playhead, seconds) : playhead,
-      currentTime: seconds > 0 ? Math.min(currentTime, seconds) : currentTime,
     });
   },
 
@@ -41,13 +36,7 @@ export const usePlaybackStore = create((set, get) => ({
 
   // ── Player Actions ─────────────────────────────────────────────────────────
 
-  // Atomic write — keeps currentTime and playhead permanently in sync.
-  // This is the single call that replaces the onCurrentTimeChange callback chain.
-  setCurrentTime: (seconds) => set({ currentTime: seconds, playhead: seconds }),
-
   setIsPlaying: (bool) => set({ isPlaying: bool }),
-
-  setIsSeeking: (bool) => set({ isSeeking: bool }),
 
   // ── Timeline Clip Selection ────────────────────────────────────────────────
   selectTimelineClip: (clipId) => set({ selectedTimelineClipId: clipId }),
