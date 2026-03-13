@@ -18,10 +18,15 @@
   - No stale closures
   - `preload="auto"`
   - `currentTime`, `isSeeking` removed from Zustand store
+- ✅ **First-import seek failure** — FIXED. Root cause: `net.fetch` proxy to `file://` added async latency on cold cache; Chromium's media pipeline finalized pipeline init before the first range response arrived and marked the resource non-seekable. Fix: `fs.createReadStream` + explicit `206 Partial Content` / `Content-Range` / `accept-ranges: bytes` in the `local-video://` protocol handler.
+- ✅ **Playhead sync** — VideoPlayer `timeupdate` writes to `usePlaybackStore.playhead` via RAF throttle. Timeline drag sets `pendingSeek`; VideoPlayer effect applies it to `video.currentTime` and clears it. No loop.
+- ✅ **Selection conflict** — `selectedClipId` renamed to `selectedMediaLibraryClipId`; `selectClip` renamed to `selectMediaLibraryClip`. Selecting either context clears the other via null-guarded cross-store calls.
+
+- ✅ **Recording preview** — both webcam and screen show a live preview immediately on source selection. Preview persists during recording with a `● REC` badge. Both hooks accept `startRecordingFromStream(existingStream)` to reuse the preview stream without interruption. `streamIsExternalRef` prevents hooks from stopping a stream they don't own.
 
 ### Known Bugs
 
-- ✅ **First-import seek failure** — FIXED. Root cause: `net.fetch` proxy to `file://` added async latency on cold cache; Chromium's media pipeline finalized pipeline init before the first range response arrived and marked the resource non-seekable. Fix: replaced `net.fetch` with `fs.createReadStream` + explicit `206 Partial Content` / `Content-Range` / `accept-ranges: bytes` headers in the `local-video://` protocol handler. Also added `getMimeType()` helper and removed unused `net` import.
+None.
 
 ### What's Not Started
 

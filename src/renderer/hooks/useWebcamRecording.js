@@ -15,6 +15,7 @@ export function useWebcamRecording() {
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const recordingIntervalRef = useRef(null);
+  const streamIsExternalRef = useRef(false);
 
   /**
    * Check which codecs are supported
@@ -39,7 +40,64 @@ export function useWebcamRecording() {
   };
 
   /**
-   * Start recording with the selected camera
+   * Shared recording logic — starts MediaRecorder from an already-acquired stream.
+   */
+  const startRecordingWithStream = async (videoStream, options = {}, isExternal = false) => {
+    streamIsExternalRef.current = isExternal;
+
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+
+    streamRef.current = videoStream;
+    let combinedStream = videoStream;
+
+    if (options.includeMicrophone !== false && isMicEnabled) {
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false,
+        });
+        combinedStream = new MediaStream([
+          ...videoStream.getVideoTracks(),
+          ...audioStream.getAudioTracks(),
+        ]);
+      } catch (audioError) {
+        console.warn("Microphone access denied or unavailable:", audioError);
+        setMicPermissionDenied(true);
+      }
+    }
+
+    const codec = getSupportedCodec();
+    const recorderOptions = {
+      mimeType: codec,
+      videoBitsPerSecond: options.bitrate || 2500000,
+    };
+
+    const mediaRecorder = new MediaRecorder(combinedStream, recorderOptions);
+    mediaRecorderRef.current = mediaRecorder;
+    chunksRef.current = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
+    };
+    mediaRecorder.onerror = (event) => {
+      console.error("MediaRecorder error:", event);
+      setError("Recording error occurred");
+      stopRecording();
+    };
+
+    mediaRecorder.start(100);
+    setIsRecording(true);
+    setRecordingTime(0);
+    recordingIntervalRef.current = setInterval(() => {
+      setRecordingTime((prev) => prev + 1);
+    }, 1000);
+  };
+
+  /**
+   * Start recording by acquiring a new stream from the given device ID.
    * @param {string} deviceId - Camera device ID
    * @param {object} options - Recording options (resolution, bitrate, etc.)
    */
@@ -47,144 +105,58 @@ export function useWebcamRecording() {
     try {
       setError(null);
       setMicPermissionDenied(false);
-
-      // Clear any existing interval before starting
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-        recordingIntervalRef.current = null;
-      }
-
-      // Configure video constraints
-      const videoConstraints = {
-        deviceId: { exact: deviceId },
-        width: { ideal: options.width || 1280 },
-        height: { ideal: options.height || 720 },
-        frameRate: { ideal: options.frameRate || 30 },
-      };
-
-      // Request webcam stream
       const videoStream = await navigator.mediaDevices.getUserMedia({
-        video: videoConstraints,
+        video: {
+          deviceId: { exact: deviceId },
+          width: { ideal: options.width || 1280 },
+          height: { ideal: options.height || 720 },
+          frameRate: { ideal: options.frameRate || 30 },
+        },
         audio: false,
       });
-
-      let combinedStream = videoStream;
-      streamRef.current = videoStream;
-
-      // Request microphone audio if enabled
-      if (options.includeMicrophone !== false && isMicEnabled) {
-        try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            },
-            video: false,
-          });
-
-          // Combine video and audio streams
-          combinedStream = new MediaStream([
-            ...videoStream.getVideoTracks(),
-            ...audioStream.getAudioTracks(),
-          ]);
-
-          console.log("Microphone audio enabled for webcam recording");
-        } catch (audioError) {
-          console.warn("Microphone access denied or unavailable:", audioError);
-          setMicPermissionDenied(true);
-          // Continue with video-only recording
-          combinedStream = videoStream;
-        }
-      }
-
-      // Get supported codec
-      const codec = getSupportedCodec();
-
-      // Configure MediaRecorder options
-      const recorderOptions = {
-        mimeType: codec,
-        videoBitsPerSecond: options.bitrate || 2500000, // 2.5 Mbps default
-      };
-
-      // Create MediaRecorder instance
-      const mediaRecorder = new MediaRecorder(combinedStream, recorderOptions);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      // Handle data available event
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      // Handle recording stop
-      mediaRecorder.onstop = () => {
-        console.log(
-          "Webcam recording stopped, total chunks:",
-          chunksRef.current.length
-        );
-      };
-
-      // Handle errors
-      mediaRecorder.onerror = (event) => {
-        console.error("MediaRecorder error:", event);
-        setError("Recording error occurred");
-        stopRecording();
-      };
-
-      // Start recording
-      mediaRecorder.start(100); // Collect data every 100ms
-      setIsRecording(true);
-      setRecordingTime(0);
-
-      // Start recording timer
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-
-      console.log("Webcam recording started with device:", deviceId);
+      await startRecordingWithStream(videoStream, options);
     } catch (err) {
       console.error("Failed to start webcam recording:", err);
-
-      // Set specific error messages based on error type
       let errorMessage = "Failed to start webcam recording.";
-      if (
-        err.name === "NotAllowedError" ||
-        err.name === "PermissionDeniedError"
-      ) {
-        errorMessage =
-          "Camera permission denied. Please allow camera access in your system settings.";
-      } else if (
-        err.name === "NotFoundError" ||
-        err.name === "DevicesNotFoundError"
-      ) {
-        errorMessage =
-          "Camera not found. Please check your camera connection and try again.";
-      } else if (
-        err.name === "NotReadableError" ||
-        err.name === "TrackStartError"
-      ) {
-        errorMessage =
-          "Camera is in use by another application. Please close other apps using the camera and try again.";
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        errorMessage = "Camera permission denied. Please allow camera access in your system settings.";
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        errorMessage = "Camera not found. Please check your camera connection and try again.";
+      } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+        errorMessage = "Camera is in use by another application. Please close other apps using the camera and try again.";
       } else if (err.name === "OverconstrainedError") {
-        errorMessage =
-          "Camera does not support the requested settings. Try a different resolution or camera.";
+        errorMessage = "Camera does not support the requested settings. Try a different resolution or camera.";
       } else if (err.name === "AbortError") {
         errorMessage = "Camera access was interrupted. Please try again.";
       } else if (err.message) {
         errorMessage = `Failed to start recording: ${err.message}`;
       }
-
       setError(errorMessage);
       setIsRecording(false);
-
-      // Clean up streams if they were created
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
+      throw err;
+    }
+  };
+
+  /**
+   * Start recording from an already-acquired preview stream.
+   * The stream is NOT stopped when recording ends — the caller owns the stream lifecycle.
+   * @param {MediaStream} existingStream - Live preview stream to record from
+   * @param {object} options - Recording options
+   */
+  const startRecordingFromStream = async (existingStream, options = {}) => {
+    try {
+      setError(null);
+      setMicPermissionDenied(false);
+      await startRecordingWithStream(existingStream, options, true);
+    } catch (err) {
+      console.error("Failed to start webcam recording from stream:", err);
+      setError(err.message || "Failed to start recording");
+      setIsRecording(false);
+      throw err;
     }
   };
 
@@ -255,11 +227,12 @@ export function useWebcamRecording() {
 
           console.log("Webcam recording stopped, blob size:", blob.size);
 
-          // Clean up
-          if (streamRef.current) {
+          // Only stop stream tracks if we acquired the stream internally
+          if (streamRef.current && !streamIsExternalRef.current) {
             streamRef.current.getTracks().forEach((track) => track.stop());
-            streamRef.current = null;
           }
+          streamRef.current = null;
+          streamIsExternalRef.current = false;
 
           mediaRecorderRef.current = null;
           chunksRef.current = [];
@@ -325,6 +298,7 @@ export function useWebcamRecording() {
     isMicEnabled,
     micPermissionDenied,
     startRecording,
+    startRecordingFromStream,
     pauseRecording,
     resumeRecording,
     stopRecording,

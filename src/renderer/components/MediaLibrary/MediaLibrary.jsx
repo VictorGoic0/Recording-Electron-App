@@ -26,8 +26,8 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [notification, setNotification] = useState(null);
-  const [webcamPreviewStream, setWebcamPreviewStream] = useState(null);
-  const webcamPreviewRef = useRef(null);
+  const [previewStream, setPreviewStream] = useState(null);
+  const previewVideoRef = useRef(null);
   const [cameraSettings, setCameraSettings] = useState({
     resolution: "720p", // 720p or 1080p
     frameRate: 30, // 30 or 60
@@ -52,12 +52,23 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
     isMicEnabled,
     micPermissionDenied,
     startRecording,
+    startRecordingFromStream,
     pauseRecording,
     resumeRecording,
     stopRecording,
     toggleMicrophone,
     cleanup,
   } = activeRecording;
+
+  const stopPreviewStream = () => {
+    if (previewStream) {
+      previewStream.getTracks().forEach((track) => track.stop());
+      setPreviewStream(null);
+    }
+    if (previewVideoRef.current) {
+      previewVideoRef.current.srcObject = null;
+    }
+  };
 
   // Show notification helper
   const showNotification = (message, type = "info") => {
@@ -95,10 +106,34 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
     }
   };
 
-  const handleScreenSourceSelect = (source) => {
-    console.log("Screen source selected:", source);
-    setSelectedSource(source);
+  const handleScreenSourceSelect = async (source) => {
     setIsScreenSourcePickerOpen(false);
+    setSelectedSource(source);
+
+    // Stop any existing preview
+    if (previewStream) {
+      previewStream.getTracks().forEach((track) => track.stop());
+      setPreviewStream(null);
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          mandatory: {
+            chromeMediaSource: "desktop",
+            chromeMediaSourceId: source.id,
+          },
+        },
+      });
+      setPreviewStream(stream);
+      if (previewVideoRef.current) {
+        previewVideoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error("Failed to start screen preview:", error);
+      showNotification("Failed to start screen preview.", "error");
+    }
   };
 
   const countdownIntervalRef = useRef(null);
@@ -108,20 +143,12 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
     event.stopPropagation();
     if (!selectedSource) return;
 
-    // Clean up preview stream if it exists (for webcam)
-    if (webcamPreviewStream) {
-      webcamPreviewStream.getTracks().forEach(track => track.stop());
-      setWebcamPreviewStream(null);
-    }
-
-    // Start recording immediately (no countdown for MVP)
     try {
       const recordingOptions = {
-        bitrate: 2500000, // 2.5 Mbps
+        bitrate: 2500000,
         includeMicrophone: isMicEnabled,
       };
 
-      // Add webcam-specific options with user settings
       if (selectedSource.type === "camera") {
         const resolution = cameraSettings.resolution === "1080p" ? { width: 1920, height: 1080 } : { width: 1280, height: 720 };
         recordingOptions.width = resolution.width;
@@ -129,7 +156,12 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
         recordingOptions.frameRate = cameraSettings.frameRate;
       }
 
-      await startRecording(selectedSource.id, recordingOptions);
+      // Reuse the live preview stream so the preview keeps running during recording
+      if (previewStream) {
+        await startRecordingFromStream(previewStream, recordingOptions);
+      } else {
+        await startRecording(selectedSource.id, recordingOptions);
+      }
     } catch (error) {
       console.error("Failed to start recording:", error);
       
@@ -214,15 +246,18 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
           }
         }
         
+        stopPreviewStream();
         setSelectedSource(null);
       } else {
         console.error("Failed to save recording:", saveResult.error);
         showNotification("Failed to save recording. Please try again.", "error");
+        stopPreviewStream();
         setSelectedSource(null);
       }
     } catch (error) {
       console.error("Failed to stop recording:", error);
       showNotification("Failed to stop recording. Please try again.", "error");
+      stopPreviewStream();
       setSelectedSource(null);
     }
   };
@@ -230,14 +265,8 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
   const handleCancelRecording = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    
-    // Clean up preview stream
-    if (webcamPreviewStream) {
-      webcamPreviewStream.getTracks().forEach(track => track.stop());
-      setWebcamPreviewStream(null);
-    }
-    
-    // Clear selected source
+    if (isRecording) cleanup();
+    stopPreviewStream();
     setSelectedSource(null);
   };
 
@@ -252,21 +281,19 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
   useEffect(() => {
     return () => {
       cleanup();
-      
-      // Clean up webcam preview stream
-      if (webcamPreviewStream) {
-        webcamPreviewStream.getTracks().forEach(track => track.stop());
+      if (previewStream) {
+        previewStream.getTracks().forEach((track) => track.stop());
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update video preview when stream changes
+  // Wire preview stream to the video element whenever it changes
   useEffect(() => {
-    if (webcamPreviewRef.current && webcamPreviewStream) {
-      webcamPreviewRef.current.srcObject = webcamPreviewStream;
+    if (previewVideoRef.current && previewStream) {
+      previewVideoRef.current.srcObject = previewStream;
     }
-  }, [webcamPreviewStream]);
+  }, [previewStream]);
 
   const handleScreenSourcePickerClose = () => {
     setIsScreenSourcePickerOpen(false);
@@ -281,36 +308,34 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
 
   const updateCameraPreview = async (camera, settings) => {
     // Stop existing preview stream if any
-    if (webcamPreviewStream) {
-      webcamPreviewStream.getTracks().forEach(track => track.stop());
-      setWebcamPreviewStream(null);
+    if (previewStream) {
+      previewStream.getTracks().forEach((track) => track.stop());
+      setPreviewStream(null);
     }
 
-    // Determine resolution
     const resolution = settings.resolution === "1080p" ? { width: 1920, height: 1080 } : { width: 1280, height: 720 };
-    
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
+        video: {
           deviceId: { exact: camera.deviceId },
           width: { ideal: resolution.width },
           height: { ideal: resolution.height },
-          frameRate: { ideal: settings.frameRate }
-        }
+          frameRate: { ideal: settings.frameRate },
+        },
       });
-      
-      setWebcamPreviewStream(stream);
+
+      setPreviewStream(stream);
       setSelectedSource({
         id: camera.deviceId,
         name: camera.label || `Camera ${camera.deviceId}`,
         type: "camera",
-        device: camera
+        device: camera,
       });
       setIsCameraPickerOpen(false);
-      
-      // Set the preview stream on the video element
-      if (webcamPreviewRef.current) {
-        webcamPreviewRef.current.srcObject = stream;
+
+      if (previewVideoRef.current) {
+        previewVideoRef.current.srcObject = stream;
       }
     } catch (error) {
       console.error("Failed to start webcam preview:", error);
@@ -580,22 +605,24 @@ function MediaLibrary({ onImport, onProcessFiles, isProcessing = false }) {
               )}
             </div>
             
-            {/* Webcam Preview (shown before recording starts) */}
-            {selectedSource.type === "camera" && !isRecording && webcamPreviewStream && (
-              <div className="webcam-preview-container">
+            {/* Recording Preview — shown for both webcam and screen, before and during recording */}
+            {previewStream && (
+              <div className="recording-preview-container">
                 <video
-                  ref={webcamPreviewRef}
+                  ref={previewVideoRef}
                   autoPlay
                   muted
                   playsInline
-                  className="webcam-preview"
-                  style={{ transform: cameraSettings.mirror ? 'scaleX(-1)' : 'none' }}
+                  className="recording-preview"
+                  style={{
+                    transform: selectedSource.type === "camera" && cameraSettings.mirror ? "scaleX(-1)" : "none",
+                  }}
                 />
-                <div className="preview-label">Preview</div>
+                {isRecording && <div className="preview-recording-badge">● REC</div>}
               </div>
             )}
             
-            {/* Camera Settings (shown before recording starts) */}
+            {/* Camera Settings (only shown before recording starts) */}
             {selectedSource.type === "camera" && !isRecording && (
               <div className="camera-settings">
                 <div className="camera-setting">

@@ -619,11 +619,10 @@
   cursor: not-allowed;
 }
 
-/* Webcam Preview */
-.webcam-preview-container {
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
+/* Recording Preview */
+.recording-preview-container {
+  width: 97%;
+  margin: 0 auto 8px;
   position: relative;
   border-radius: var(--border-radius-md);
   overflow: hidden;
@@ -631,25 +630,24 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-.webcam-preview {
+.recording-preview {
   width: 100%;
   height: auto;
   display: block;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  object-fit: contain;
 }
 
-.preview-label {
+.preview-recording-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  background: rgba(0, 0, 0, 0.7);
+  top: 8px;
+  left: 8px;
+  background: rgba(220, 38, 38, 0.85);
   color: white;
-  padding: 6px 12px;
+  padding: 3px 8px;
   border-radius: var(--border-radius-sm);
   font-size: var(--font-size-xs);
-  font-weight: 600;
-  text-transform: uppercase;
+  font-weight: 700;
   letter-spacing: 0.5px;
 }
 
